@@ -22,3 +22,5 @@ Release
 *.vbproj.user
 ipch
 *sdf
+
+./vs
