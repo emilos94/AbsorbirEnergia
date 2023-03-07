@@ -24,3 +24,6 @@ ipch
 *sdf
 
 ./vs
+
+# Ignore asesprite files
+*.asesprite
