@@ -43,7 +43,7 @@ U32 graphics_WindowShouldClose(Window* window)
 void graphics_WindowClear()
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT); ;
 }
 
 void graphics_SwapBuffersAndPollEvents(Window* window)

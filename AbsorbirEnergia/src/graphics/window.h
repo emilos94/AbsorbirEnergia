@@ -4,7 +4,7 @@
 #include "opengl_utils.h"
 #include <GLFW/glfw3.h>
 #include "../core/definitions.h"
-#include "input.h"
+#include "../core/input.h"
 
 struct Window {
 

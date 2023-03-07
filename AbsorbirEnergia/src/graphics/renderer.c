@@ -79,11 +79,27 @@ void graphics_VaoDestroy(VertexArrayObject* vao)
 
 void graphics_RenderEntity(MemoryArena* arena, ShaderProgram shader, Entity* entity)
 {
+	if (!entity->isVisible) return;
+
 	graphics_ShaderBind(shader);
 
 	Mat4f model = math_Mat4ModelMatrix(&entity->transform);
-	graphics_ShaderSetUniformMat4(arena, shader, "model", &model);
-	graphics_TextureBind(&entity->texture);
+	graphics_ShaderSetUniformMat4(shader, "model", &model);
+
+	if (entity->entityFlags & EntityFlag_HasAnimations)
+	{
+		Animation* animation = &entity->animations[entity->currentAnimation];
+		graphics_TextureBind(&entity->spriteSheet.texture);
+		graphics_ShaderSetUniformF(shader, "spriteCount", (float)entity->spriteSheet.spriteCount);
+		graphics_ShaderSetUniformF(shader, "spriteIndex", (float)animation->spriteIndex);
+	}
+	else
+	{
+		graphics_TextureBind(&entity->texture);
+		graphics_ShaderSetUniformF(shader, "spriteCount", 1.0f);
+		graphics_ShaderSetUniformF(shader, "spriteIndex", 0.0f);
+	}
+
 	graphics_VaoRender(&quadVao);
 }
 

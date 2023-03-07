@@ -24,7 +24,7 @@
     <ClCompile Include="src\graphics\window.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\graphics\input.c">
+    <ClCompile Include="src\core\input.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\file_loader.c">
@@ -51,6 +51,18 @@
     <ClCompile Include="src\math\math_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\vec2f.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\graphics\spritesheet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\window.h">
@@ -62,7 +74,7 @@
     <ClInclude Include="src\core\definitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\graphics\input.h">
+    <ClInclude Include="src\core\input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\file_loader.h">
@@ -92,6 +104,15 @@
     <ClInclude Include="src\math\math_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\spritesheet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\shaders\default.frag">
@@ -103,6 +124,18 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\images\container.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\background.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\player.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\base_enemy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\electric_shield.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

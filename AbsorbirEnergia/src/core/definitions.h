@@ -2,6 +2,7 @@
 #define DEFINITIONS_H
 
 #define U32 unsigned int
+#define B32 unsigned int
 
 #define TRUE 1
 #define FALSE 0

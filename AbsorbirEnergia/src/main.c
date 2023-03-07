@@ -1,35 +1,34 @@
 #include <stdio.h>
 
 #include "graphics/shader_program.h"
-#include "graphics/input.h"
 #include "graphics/texture.h"
 #include "graphics/renderer.h"
 #include "graphics/window.h"
+#include "core/input.h"
+#include "game.h"
 
 int main(void) 
 {	
-	Window window = graphics_WindowCreate("Hello window", 1280, 720);
+	Window window = graphics_WindowCreate("Absorbir energia", 1280, 720);
+
+	// configurations
+	stbi_set_flip_vertically_on_load(TRUE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glEnable(GL_ALPHA_TEST);
 
 	MemoryArena* arena = memory_MemoryArenaCreate(memory_Megabytes(1));
 
 	ShaderProgram shaderProgram = graphics_ShaderLoad(arena, "res/shaders/default.vert", "res/shaders/default.frag");
 	memory_MemoryArenaReset(arena);
-	Texture texture = graphics_TextureLoad(arena, "res/images/container.jpg");
 	memory_MemoryArenaReset(arena);
-
 	graphics_RendererInit(arena);
 
-	Entity entity;
-	entity.texture = graphics_TextureLoad(arena, "res/images/container.jpg");
-	entity.transform.position.x = 32.0f;
-	entity.transform.position.y = 0.0f;
-	entity.transform.scale.x = 32.0f;
-	entity.transform.scale.y = 32.0f;
-	entity.transform.rotation = 0.0f;
+	GameState* gameState = game_Init(arena);
 
 	Mat4f projectionMatrix = math_Mat4Orthographic(0.0f, 320.0f, 0.0f, 180.0f, -1.0f, 1.0f);
 	graphics_ShaderBind(shaderProgram);
-	graphics_ShaderSetUniformMat4(arena, shaderProgram, "projectionMatrix", &projectionMatrix);
+	graphics_ShaderSetUniformMat4(shaderProgram, "projectionMatrix", &projectionMatrix);
 	graphics_ShaderUnbind(shaderProgram);
 
 	float secondsPerUpdate = 1.0f / 60.0f;
@@ -55,23 +54,41 @@ int main(void)
 			updateCounter = 0;
 		}
 
+		gameState->secondsSinceStart += elapsed;
+
 		while (lag >= secondsPerUpdate)
 		{
 			lag -= secondsPerUpdate;
 			updateCounter++;
 
+			game_Input(gameState, arena);	
+			game_Update(gameState, arena, secondsPerUpdate);
+
 			graphics_WindowClear();
-			graphics_RenderEntity(arena, shaderProgram, &entity);
+			for (U32 i = 0; i < ENTITY_MAX; i++)
+			{
+				Entity* e = &gameState->entities[i];
+				if (e->isVisible)
+				{
+					if (e->entityId == 3)
+					{
+						int x = 10;
+					}
+					graphics_RenderEntity(arena, shaderProgram, e);
+				}
+			}
 
 			input_ClearJustPressed();
 			graphics_SwapBuffersAndPollEvents(&window);
 		}
 	}
 
-	graphics_WindowTerminate();
 	graphics_ShaderDestroy(shaderProgram); 
 	graphics_RendererCleanup();
-	graphics_TextureDestroy(&texture);
+
+	game_Cleanup(gameState);
+
+	graphics_WindowTerminate();
 	memory_MemoryArenaFree(arena);
 
 	return 0;

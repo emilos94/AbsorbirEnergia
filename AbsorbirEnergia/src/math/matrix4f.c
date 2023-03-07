@@ -58,18 +58,9 @@ Mat4f math_Mat4ModelMatrix(Transform* transform)
 {
 	Mat4f model = math_Mat4Identity();
 
-	//printf("\nTranslated matrix:\n");
 	math_Mat4Translate(&model, transform->position);
 	math_Mat4Scale(&model, transform->scale);
 	math_Mat4RotateZ(&model, transform->rotation);
-	//math_Mat4PrettyPrint(&model);
-/*
-	printf("\nRotated matrix:\n");
-	math_Mat4PrettyPrint(&model);*/
-
-	//printf("\nScaled matrix:\n");
-	//math_Mat4PrettyPrint(&model);
-
 
 	return model;
 }

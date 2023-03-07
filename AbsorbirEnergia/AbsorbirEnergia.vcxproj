@@ -170,25 +170,32 @@
     <ClCompile Include="src\core\file_loader.c" />
     <ClCompile Include="src\core\memory_arena.c" />
     <ClCompile Include="src\core\stb_image.cpp" />
+    <ClCompile Include="src\core\time.c" />
+    <ClCompile Include="src\game.c" />
     <ClCompile Include="src\glad.c" />
-    <ClCompile Include="src\graphics\input.c" />
+    <ClCompile Include="src\core\input.c" />
     <ClCompile Include="src\graphics\renderer.c" />
     <ClCompile Include="src\graphics\shader_program.c" />
+    <ClCompile Include="src\graphics\spritesheet.c" />
     <ClCompile Include="src\graphics\texture.c" />
     <ClCompile Include="src\graphics\window.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\math\math_util.c" />
     <ClCompile Include="src\math\matrix4f.c" />
+    <ClCompile Include="src\math\vec2f.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\definitions.h" />
     <ClInclude Include="src\core\entity.h" />
     <ClInclude Include="src\core\file_loader.h" />
     <ClInclude Include="src\core\memory_arena.h" />
-    <ClInclude Include="src\graphics\input.h" />
+    <ClInclude Include="src\core\time.h" />
+    <ClInclude Include="src\game.h" />
+    <ClInclude Include="src\core\input.h" />
     <ClInclude Include="src\graphics\opengl_utils.h" />
     <ClInclude Include="src\graphics\renderer.h" />
     <ClInclude Include="src\graphics\shader_program.h" />
+    <ClInclude Include="src\graphics\spritesheet.h" />
     <ClInclude Include="src\graphics\texture.h" />
     <ClInclude Include="src\graphics\window.h" />
     <ClInclude Include="src\math\math_util.h" />
@@ -225,7 +232,11 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\images\background.png" />
+    <Image Include="res\images\base_enemy.png" />
     <Image Include="res\images\container.jpg" />
+    <Image Include="res\images\electric_shield.png" />
+    <Image Include="res\images\player.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

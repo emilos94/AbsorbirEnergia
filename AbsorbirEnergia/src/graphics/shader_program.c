@@ -65,7 +65,14 @@ void graphics_ShaderDestroy(ShaderProgram shaderProgram)
 	GLCall(glDeleteProgram(shaderProgram));
 }
 
-void graphics_ShaderSetUniformMat4(MemoryArena* arena, ShaderProgram shaderProgram, char* name, Mat4f* mat4)
+
+void graphics_ShaderSetUniformF(ShaderProgram shaderProgram, char* name, float value)
+{
+	U32 location = glGetUniformLocation(shaderProgram, name);
+	GLCall(glUniform1f(location, value));
+}
+
+void graphics_ShaderSetUniformMat4(ShaderProgram shaderProgram, char* name, Mat4f* mat4)
 {
 	U32 location = glGetUniformLocation(shaderProgram, name);
 	GLCall(glUniformMatrix4fv(location, 1, GL_TRUE, &mat4->values[0]));

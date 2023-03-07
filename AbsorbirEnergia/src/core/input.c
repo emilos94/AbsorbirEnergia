@@ -2,7 +2,7 @@
 
 void input_Initialize()
 {
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < 1024; i++)
 	{
 		KEY_INPUTS[i] = FALSE;
 	}
@@ -11,6 +11,11 @@ void input_Initialize()
 U32 input_IsKeyPressed(U32 key)
 {
 	return KEY_INPUTS[key];
+}
+
+U32 input_IsKeyJustPressed(U32 key)
+{
+	return KEY_JUST_PRESSED[key];
 }
 
 void _input_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -32,7 +37,7 @@ void _input_KeyCallback(GLFWwindow* window, int key, int scancode, int action, i
 
 void input_ClearJustPressed()
 {
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < 1024; i++)
 	{
 		KEY_JUST_PRESSED[i] = FALSE;
 	}
