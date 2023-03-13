@@ -2,6 +2,7 @@
 #define ENTITY_H
 
 #include "definitions.h"
+#include "collision.h"
 #include "../math/vec2f.h"
 #include "../graphics/texture.h"
 #include "../graphics/spritesheet.h"
@@ -30,6 +31,16 @@ enum EntityFlags
 	EntityFlag_EnemyBaseMover = 1 << 2,
 	EntityFlag_HasAnimations = 1 << 3,
 	EntityFlag_HasDestroyTimer = 1 << 4,
+	EntityFlag_HasCollider = 1 << 5,
+	EntityFlag_MarkedForDestruction = 1 << 6,
+};
+
+enum EntityTags
+{
+	EntityTag_Player = 1 << 0,
+	EntityTag_Enemy = 1 << 1,
+	EntityTag_Bullet = 1 << 2,
+	EntityTag_Shield = 1 << 3,
 };
 
 struct Entity
@@ -38,13 +49,14 @@ struct Entity
 
 	U32 entityId;
 	U32 entityFlags;
+	U32 entityTags;
 
 	Transform transform;
 	Texture texture;
 	Motion motion;
 
 	SpriteSheet spriteSheet;
-	Animation* animations;
+	Animation* animations[3];
 	U32 animationCount;
 	U32 currentAnimation;
 	B32 isAnimationPlaying;
@@ -56,7 +68,11 @@ struct Entity
 
 	float move_last_switch;
 	float move_switch_cooldown;
+
+	CollisionBox collision_box;
 };
 typedef struct Entity Entity;
+
+void entity_set_zero(Entity* entity);
 
 #endif // !ENTITY_H

@@ -5,6 +5,7 @@
 #include "graphics/renderer.h"
 #include "graphics/window.h"
 #include "core/input.h"
+#include "core/assets.h"
 #include "game.h"
 
 int main(void) 
@@ -21,10 +22,10 @@ int main(void)
 
 	ShaderProgram shaderProgram = graphics_ShaderLoad(arena, "res/shaders/default.vert", "res/shaders/default.frag");
 	memory_MemoryArenaReset(arena);
-	memory_MemoryArenaReset(arena);
 	graphics_RendererInit(arena);
 
-	GameState* gameState = game_Init(arena);
+	Assets* assets = assets_load(arena);
+	GameState* gameState = game_Init(arena, assets);
 
 	Mat4f projectionMatrix = math_Mat4Orthographic(0.0f, 320.0f, 0.0f, 180.0f, -1.0f, 1.0f);
 	graphics_ShaderBind(shaderProgram);
@@ -61,21 +62,15 @@ int main(void)
 			lag -= secondsPerUpdate;
 			updateCounter++;
 
-			game_Input(gameState, arena);	
-			game_Update(gameState, arena, secondsPerUpdate);
+			game_Input(gameState, arena, assets);
+			game_Update(gameState, arena, assets, secondsPerUpdate);
 
 			graphics_WindowClear();
-			for (U32 i = 0; i < ENTITY_MAX; i++)
+			for (U32 i = 0; i < gameState->entity_active_count; i++)
 			{
-				Entity* e = &gameState->entities[i];
-				if (e->isVisible)
-				{
-					if (e->entityId == 3)
-					{
-						int x = 10;
-					}
-					graphics_RenderEntity(arena, shaderProgram, e);
-				}
+				U32 entity_handle = gameState->entity_active_entities[i];
+				Entity* e = &gameState->entities[entity_handle];
+				graphics_RenderEntity(arena, shaderProgram, e);
 			}
 
 			input_ClearJustPressed();
@@ -85,10 +80,8 @@ int main(void)
 
 	graphics_ShaderDestroy(shaderProgram); 
 	graphics_RendererCleanup();
-
-	game_Cleanup(gameState);
-
 	graphics_WindowTerminate();
+	assets_cleanup(assets);
 	memory_MemoryArenaFree(arena);
 
 	return 0;
