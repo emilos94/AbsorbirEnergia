@@ -1,6 +1,6 @@
 #include "vec2f.h"
 
-Vec2f math_Vec2f(float x, float y)
+Vec2f math_vec2f(float x, float y)
 {
 	Vec2f v;
 	v.x = x;
@@ -95,6 +95,13 @@ void math_vec2f_zero(Vec2f* vec)
 	vec->y = 0.0f;
 }
 
+void math_vec2f_set(Vec2f* vec, float value)
+{
+	ASSERT(vec);
+
+	vec->x = value;
+	vec->y = value;
+}
 
 void math_vec2f_mul_scalar(Vec2f* vec, float scalar)
 {

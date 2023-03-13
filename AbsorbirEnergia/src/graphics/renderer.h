@@ -21,10 +21,10 @@ void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, U32 index, U32 elementsP
 void graphics_VaoRender(VertexArrayObject* vao);
 void graphics_VaoDestroy(VertexArrayObject* vao);
 
-
 // rendering
 void graphics_RendererInit(MemoryArena* arena);
 void graphics_RenderEntity(MemoryArena* arena, ShaderProgram shader, Entity* entity);
+void graphics_render_quad_color(MemoryArena* arena, ShaderProgram shader, Vec2f upper_left, Vec2f bottom_right, U32 color);
 void graphics_RendererCleanup();
 
 #endif
