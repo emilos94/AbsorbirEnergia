@@ -8,12 +8,12 @@ void input_Initialize()
 	}
 }
 
-U32 input_IsKeyPressed(U32 key)
+u32 input_IsKeyPressed(u32 key)
 {
 	return KEY_INPUTS[key];
 }
 
-U32 input_IsKeyJustPressed(U32 key)
+u32 input_IsKeyJustPressed(u32 key)
 {
 	return KEY_JUST_PRESSED[key];
 }

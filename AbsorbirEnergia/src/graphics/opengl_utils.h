@@ -16,9 +16,9 @@ static void GLClearErrors()
 	while (glGetError() != GL_NO_ERROR);
 }
 
-static U32 GLLogCall(const char* functionName, const char* fileName, int line)
+static u32 GLLogCall(const char* functionName, const char* fileName, int line)
 {
-	U32 noErrors = TRUE;
+	u32 noErrors = TRUE;
 	GLenum error = glGetError();
 	while (error)
 	{

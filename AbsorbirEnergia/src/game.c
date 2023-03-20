@@ -2,18 +2,17 @@
 
 GameState* game_Init(MemoryArena* arena, Assets* assets)
 {
-	GameState* gameState = memory_AllocateStruct(arena, GameState);
-	gameState->entities = memory_AllocateArray(arena, Entity, ENTITY_MAX);
-	gameState->entity_active_entities = memory_AllocateArray(arena, U32, ENTITY_MAX);
-	gameState->entity_active_id_to_index = memory_AllocateArray(arena, U32, ENTITY_MAX);
+	GameState* gameState = memory_struct_zero_allocate(arena, GameState);
 	gameState->entity_active_count = 0;
+	gameState->entity_free_count = 0;
 
-	gameState->entityCount = 0;
-	gameState->first_free_entity = 0;
+	gameState->enemy_alive_count = 0;
+	gameState->entity_first_free = 0;
+	gameState->entity_last_active = 0;
 	gameState->first_free_animation = 0;
 
-	Entity* background = _game_entity_textured_create(gameState, arena, math_vec2f(0.0f, 0.0f), math_vec2f(320.0f, 180.0f), assets->texture_background);
-	Entity* player = _game_entity_textured_create(gameState, arena, math_vec2f(0.0f, 0.0f), math_vec2f(32.0f, 32.0f), assets->texture_player);
+	Entity* background = _game_entity_textured_create(arena, gameState, math_vec2f(0.0f, 0.0f), math_vec2f(320.0f, 180.0f), assets->texture_background);
+	Entity* player = _game_entity_textured_create(arena, gameState, math_vec2f(0.0f, 0.0f), math_vec2f(32.0f, 32.0f), assets->texture_player);
 	player->entityTags = EntityTag_Player;
 
 	// motion
@@ -25,10 +24,10 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 
 	player->collision_box.top_left = math_vec2f(2.0f, 28.0f);
 	player->collision_box.bottom_right = math_vec2f(28.0f, 2.0f);
-	gameState->playerHandle = player->entityId;
+	gameState->player = player;
 
 	// player shield
-	Entity* shield = _game_entity_create(gameState, player->transform.position, player->transform.scale);
+	Entity* shield = _game_entity_create(arena, gameState, player->transform.position, player->transform.scale);
 	shield->entityFlags |= EntityFlag_HasAnimations | EntityFlag_HasCollider;
 	shield->entityTags = EntityTag_Shield;
 	shield->spriteSheet = graphics_spritesheet_create(assets->texture_electric_shield, 9);
@@ -46,7 +45,7 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 
 	shield->collision_box.top_left = math_vec2f(0.0f, 32.0f);
 	shield->collision_box.bottom_right = math_vec2f(32.0f, 0.0f);
-	gameState->playerShieldHandle = shield->entityId;
+	gameState->player_shield = shield;
 
 	PlayerShieldState* playerShieldState = &gameState->playerShieldState;
 	playerShieldState->duration = 1.0f;
@@ -58,37 +57,14 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	playerShootState->cooldown = 0.7f;
 	playerShootState->lastUsed = 0.0f;
 
-	// Initialize enemy wave
-	U32 enemyCount = 4;
-	float enemyWidth = 32;
-	float screenWidth = 320;
-	float spacing = screenWidth / (float)enemyCount;
-
-	for (U32 i = 0; i < enemyCount; i++)
-	{
-		float xPosition = spacing * (float)(i + 1) - enemyWidth / 2.0f - spacing / 2.0f;
-		Entity* enemy = _game_entity_textured_create(gameState, arena, math_vec2f(xPosition, 140.0f), math_vec2f(32.0f, 32.0f), assets->texture_enemy);
-		enemy->isVisible = TRUE;
-		enemy->entityFlags |= EntityFlag_EnemyBaseMover | EntityFlag_HasMotion | EntityFlag_HasCollider;
-		enemy->entityTags = EntityTag_Enemy;
-		
-		enemy->move_switch_cooldown = 0.9f;
-		enemy->move_last_switch = time_now_seconds();
-
-		enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
-		enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
-		enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
-		enemy->motion.friction = 1.0f;
-		enemy->collision_box.top_left = math_vec2f(0.0f, 32.0f);
-		enemy->collision_box.bottom_right = math_vec2f(32.0f, 0.0f);
-	}
+	_game_enemy_wave_create(gameState, arena, assets, 4);
 
 	return gameState;
 }
 
-void game_Input(GameState* gameState, MemoryArena* arena, Assets* assets)
+void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
 {
-	Entity* player = &gameState->entities[gameState->playerHandle];
+	Entity* player = game_state->player;
 	float dx = 0.0f;
 	if (input_IsKeyPressed(GLFW_KEY_A))
 	{
@@ -102,16 +78,16 @@ void game_Input(GameState* gameState, MemoryArena* arena, Assets* assets)
 
 	if (input_IsKeyJustPressed(GLFW_KEY_LEFT_CONTROL))
 	{
-		PlayerShieldState* shieldState = &gameState->playerShieldState;
+		PlayerShieldState* shieldState = &game_state->playerShieldState;
 
 		if (!shieldState->isActive)
 		{
-			B32 canUseShield = gameState->secondsSinceStart - shieldState->lastExpired >= shieldState->cooldown;
+			b32 canUseShield = game_state->secondsSinceStart - shieldState->lastExpired >= shieldState->cooldown;
 			if (canUseShield)
 			{
 				shieldState->lastUsed = time_now_seconds();
 				shieldState->isActive = TRUE;
-				Entity* shield = &gameState->entities[gameState->playerShieldHandle];
+				Entity* shield = game_state->player_shield;
 				shield->isVisible = TRUE;
 				shield->currentAnimation = 0;
 				shield->animations[shield->currentAnimation]->running = TRUE;
@@ -121,35 +97,38 @@ void game_Input(GameState* gameState, MemoryArena* arena, Assets* assets)
 
 	if (input_IsKeyJustPressed(GLFW_KEY_SPACE))
 	{
-		PlayerShootState* playerShootState = &gameState->playerShootState;
-		B32 canUse = time_now_seconds() - playerShootState->lastUsed >= playerShootState->cooldown;
+		PlayerShootState* playerShootState = &game_state->playerShootState;
+		b32 canUse = time_now_seconds() - playerShootState->lastUsed >= playerShootState->cooldown;
 		if (canUse)
 		{
 			playerShootState->lastUsed = time_now_seconds();
 			Vec2f playerMiddle = math_Vec2fAdd(player->transform.position, math_Vec2fDivScalar(player->transform.scale, 2.0f));
 			float bulletHalfSize = 8.0f;
 			Vec2f bulletPosition = math_Vec2fSubScalar(playerMiddle, bulletHalfSize);
-			_game_entity_player_bullet_create(gameState, arena, assets, bulletPosition);
+			_game_entity_player_bullet_create(game_state, arena, assets, bulletPosition);
 		}
 	}
 }
 
-void game_Update(GameState* gameState, MemoryArena* arena, Assets* assets, float delta)
+void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, float delta)
 {
-	for (U32 i = 0; i < gameState->entity_active_count; i++)
+	entity_loopback(game_state->entity_last_active, e)
 	{
-		U32 entity_handle = gameState->entity_active_entities[i];
-		Entity* e = &gameState->entities[entity_handle];
-
 		if (e->entityFlags & EntityFlag_EnemyBaseMover)
 		{
-			B32 shouldSwitchDirection = time_now_seconds() - e->move_last_switch >= e->move_switch_cooldown;
-			if (shouldSwitchDirection)
+			f32 distance = math_vec2f_distance(e->transform.position, e->target_position);
+			e->transform.position.x += distance * 0.1f * e->motion.direction.x * delta;
+			
+			f32 x_direction = e->motion.direction.x;
+			if (x_direction > 0.0f && e->transform.position.x >= e->target_position.x)
 			{
 				e->motion.direction.x *= -1.0f;
-				math_vec2f_negate(&e->motion.velocity);
-				math_vec2f_mul_scalar(&e->motion.velocity, 0.5f);
-				e->move_last_switch = time_now_seconds();
+				e->target_position.x -= 64.0f;
+			}
+			if (x_direction < 0.0f && e->transform.position.x <= e->target_position.x)
+			{
+				e->motion.direction.x *= -1.0f;
+				e->target_position.x += 64.0f;
 			}
 		}
 
@@ -170,17 +149,15 @@ void game_Update(GameState* gameState, MemoryArena* arena, Assets* assets, float
 
 		if (e->entityFlags & EntityFlag_HasAnimations)
 		{
-			Animation* animation = &e->animations[e->currentAnimation];
 			_game_animation_update(e, delta);
 		}
 
 		if (e->entityFlags & EntityFlag_HasDestroyTimer)
 		{
-			B32 shouldBeDestroyed = time_now_seconds() - e->createdTime >= e->timeToLive;
+			b32 shouldBeDestroyed = time_now_seconds() - e->createdTime >= e->timeToLive;
 			if (shouldBeDestroyed)
 			{
 				e->entityFlags |= EntityFlag_MarkedForDestruction;
-				_game_entity_free(gameState, e);
 			}
 		}
 
@@ -188,68 +165,82 @@ void game_Update(GameState* gameState, MemoryArena* arena, Assets* assets, float
 		{
 			// todo: replace brute force check if it ever becomes a problem.
 			//		 perhaps a grid lookup could work
-			for (U32 j = 0; j < gameState->entity_active_count; j++)
+			entity_loopback(game_state->entity_last_active, entity_other)
 			{
-				B32 is_self = i == j;
-				if (is_self) continue;
+				b32 is_self = entity_other == e;
+				if (is_self)
+				{
+					entity_other = entity_other->prev;
+					continue;
+				}
 
-				U32 entity_handle_other = gameState->entity_active_entities[j];
-				Entity* entity_other = &gameState->entities[entity_handle_other];
-
-				B32 collision = entity_other->entityFlags & EntityFlag_HasCollider &&
+				b32 collision = entity_other->entityFlags & EntityFlag_HasCollider &&
 					collision_check_aabb_aabb(e->transform.position, e->collision_box, entity_other->transform.position, entity_other->collision_box);
 			
 				if (collision)
 				{
-					_game_collision_handle(gameState, arena, assets, e, entity_other);
+					_game_collision_handle(game_state, arena, assets, e, entity_other);
 				}
 			}
 		}
 	}
 
 	// clamp player position
-	Entity* player = &gameState->entities[gameState->playerHandle];
+	Entity* player = game_state->player;
 	player->transform.position.x = math_MaxF(0.0f, player->transform.position.x);
 	player->transform.position.x = math_MinF(320.0f - player->transform.scale.x, player->transform.position.x);
 
-	_game_playerShieldUpdate(gameState);
+	_game_playerShieldUpdate(game_state);
 
-	// Free entities marked for destruction
-	for (U32 i = 0; i < gameState->entity_active_count; i++)
+	entity_loopback(game_state->entity_last_active, entity)
 	{
-		U32 entity_handle = gameState->entity_active_entities[i];
-		Entity* e = &gameState->entities[entity_handle];
-		
-		if (e->entityFlags & EntityFlag_MarkedForDestruction)
+		if (entity->entityFlags & EntityFlag_MarkedForDestruction)
 		{
-			_game_entity_free(gameState, e);
+			_game_entity_free(game_state, entity);
 		}
 	}
 }
 
-void _game_playerShieldUpdate(GameState* gameState)
-{
-	// set player shield position to player pos
-	Entity* player = &gameState->entities[gameState->playerHandle];
-	Entity* shield = &gameState->entities[gameState->playerShieldHandle];
-	shield->transform.position = player->transform.position;
 
-	if (gameState->playerShieldState.isActive)
+void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProgram shader_quad_colored)
+{
+	entity_loop(game_state->entity_first_active, entity)
 	{
-		PlayerShieldState* shieldState = &gameState->playerShieldState;
-		B32 durationExpired = time_now_seconds() - shieldState->lastUsed >= shieldState->duration;
+		if (!entity->isVisible)
+		{
+			continue;
+		}
+
+		graphics_entity_render(shader_default, entity);
+		if (entity->entityFlags & EntityFlag_HasCollider && 1)
+		{
+			graphics_render_quad_color(shader_quad_colored, entity->transform.position,
+				math_Vec2fAdd(entity->transform.position, entity->transform.scale),
+				1.0f, 0.0f, 0.0f);
+		}
+	}
+}
+
+void _game_playerShieldUpdate(GameState* game_state)
+{
+	game_state->player_shield->transform.position = game_state->player->transform.position;
+
+	if (game_state->playerShieldState.isActive)
+	{
+		PlayerShieldState* shieldState = &game_state->playerShieldState;
+		b32 durationExpired = time_now_seconds() - shieldState->lastUsed >= shieldState->duration;
 		if (durationExpired)
 		{
 			shieldState->isActive = FALSE;
 			shieldState->lastExpired = time_now_seconds();
-			shield->isVisible = FALSE;
+			game_state->player_shield->isVisible = FALSE;
 		}
 	}
 }
 
 void _game_animation_update(Entity* entity, float delta)
 {
-	Animation* animation = &entity->animations[entity->currentAnimation];
+	Animation* animation = entity->animations[entity->currentAnimation];
 	if (!animation->running) return;
 	
 	animation->currentTime += delta;
@@ -261,47 +252,57 @@ void _game_animation_update(Entity* entity, float delta)
 		}
 		else
 		{
-			// animation done - notify ?
-			animation->currentTime = animation->durationSeconds;
+			animation->currentTime = 0.0f;
 			animation->running = FALSE;
 		}
 	}
 	float timePerSprite = animation->durationSeconds / (float)entity->spriteSheet.spriteCount;
-	animation->spriteIndex = (U32)floor(animation->currentTime / timePerSprite);
+	animation->spriteIndex = (u32)floor(animation->currentTime / timePerSprite);
 }
 
 
-Entity* _game_entity_allocate(GameState* gameState)
+Entity* _game_entity_allocate(MemoryArena* arena, GameState* game_state)
 {
-	Entity* result = gameState->first_free_entity;
+	Entity* result = game_state->entity_first_free;
 	if (result)
 	{
-		gameState->first_free_entity = gameState->first_free_entity->next;
+		game_state->entity_first_free = game_state->entity_first_free->next;
+		game_state->entity_free_count--;
 	}
 	else
 	{
-		result = &gameState->entities[gameState->entityCount];
-		result->entityId = gameState->entityCount++;
+		result = memory_struct_zero_allocate(arena, Entity);
 	}
 
-	gameState->entity_active_entities[gameState->entity_active_count] = result->entityId;
-	gameState->entity_active_id_to_index[result->entityId] = gameState->entity_active_count;
-	gameState->entity_active_count++;
+	if (!game_state->entity_first_active)
+	{
+		game_state->entity_first_active = result;
+	}
+
+	if (game_state->entity_last_active)
+	{
+		game_state->entity_last_active->next = result;
+	}
+
+	entity_set_zero(result);
+	result->prev = game_state->entity_last_active;
+	game_state->entity_last_active = result;
+	game_state->entity_active_count++;
 	return result;
 }
 
-Entity* _game_entity_textured_create(GameState* gameState, MemoryArena* arena, Vec2f position, Vec2f scale, Texture texture)
+Entity* _game_entity_textured_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale, Texture texture)
 {
-	Entity* entity = _game_entity_create(gameState, position, scale);
+	Entity* entity = _game_entity_create(arena, gameState, position, scale);
 	entity->texture = texture;
 	entity->entityFlags = EntityFlag_HasTexture;
 
 	return entity;
 }
 
-Entity* _game_entity_create(GameState* gameState, Vec2f position, Vec2f scale)
+Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale)
 {
-	Entity* entity = _game_entity_allocate(gameState);
+	Entity* entity = _game_entity_allocate(arena, gameState);
 	entity->transform.position = position;
 	entity->transform.scale = scale;
 	entity->transform.rotation = 0.0f;
@@ -313,14 +314,14 @@ Entity* _game_entity_create(GameState* gameState, Vec2f position, Vec2f scale)
 
 Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position)
 {
-	Entity* bullet = _game_entity_textured_create(gameState, arena, position, math_vec2f(16.0f, 16.0f), assets->texture_bullet);
+	Entity* bullet = _game_entity_textured_create(arena, gameState, position, math_vec2f(16.0f, 16.0f), assets->texture_bullet);
 	bullet->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasDestroyTimer | EntityFlag_HasCollider;
 	bullet->entityTags = EntityTag_Bullet;
 	bullet->motion.direction = math_vec2f(0.0f, 1.0f);
 	bullet->motion.acceleration = math_vec2f(0.0f, 1100.0f);
 	bullet->motion.friction = 0.99f;
 
-	bullet->createdTime = gameState->secondsSinceStart;
+	bullet->createdTime = time_now_seconds();
 	bullet->timeToLive = 3.0f;
 
 	bullet->collision_box.top_left = math_vec2f(0.0f, 16.0f);
@@ -331,7 +332,7 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position)
 {
-	Entity* explosion = _game_entity_allocate(gameState);
+	Entity* explosion = _game_entity_allocate(arena, gameState);
 	explosion->transform.position = position;
 	explosion->transform.scale = math_vec2f(32.0f, 32.0f);
 	explosion->isVisible = TRUE;
@@ -344,6 +345,8 @@ Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, 
 
 	explosion->spriteSheet = graphics_spritesheet_create(assets->texture_explosion, 8);
 	explosion->animations[0] = _game_graphics_animation_allocate(gameState, arena);
+	explosion->animations[0]->currentTime = 0.0f;
+	explosion->animations[0]->running = TRUE;
 	graphics_animation_set(explosion->animations[0], 0, 7, FALSE, 1.0f);
 
 	explosion->timeToLive = 1.0f;
@@ -352,34 +355,47 @@ Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, 
 	return explosion;
 }
 
-void _game_entity_free(GameState* gameState, Entity* entity)
+void _game_entity_free(GameState* game_state, Entity* entity)
 {
-	entity->next = gameState->first_free_entity;
-	gameState->first_free_entity = entity;
-	if (entity->entityFlags & EntityFlag_HasAnimations)
+	if (entity->prev)
 	{
-		for (U32 i = 0; i < entity->animationCount; i++)
-		{
-			_game_graphics_animation_free(gameState, entity->animations[i]);
-		}
+		entity->prev->next = entity->next;
 	}
-	entity_set_zero(entity);
 
-	U32 index_to_fill = gameState->entity_active_id_to_index[entity->entityId];
-	U32 latest_entity_id = gameState->entity_active_entities[gameState->entity_active_count - 1];
-	gameState->entity_active_entities[index_to_fill] = latest_entity_id;
-	gameState->entity_active_id_to_index[latest_entity_id] = index_to_fill;
-	gameState->entity_active_count--;
+	if (entity->next)
+	{
+		entity->next->prev = entity->prev;
+	}
+	entity->next = game_state->entity_first_free;
+	game_state->entity_first_free = entity;
+	game_state->entity_free_count++;
+	game_state->entity_active_count--;
+
+	if (game_state->entity_last_active == entity)
+	{
+		game_state->entity_last_active = entity->prev;
+	}
+
+	if (game_state->entity_first_active == entity)
+	{
+		game_state->entity_first_active = entity->next;
+	}
 }
 
 void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* assets, Entity* either, Entity* other)
 {
 	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Enemy)
 	{
-		_game_entity_explosion_create(gameState, arena, assets, either->transform.position);
+		_game_entity_explosion_create(gameState, arena, assets, other->transform.position);
 
 		either->entityFlags |= EntityFlag_MarkedForDestruction;
 		other->entityFlags |= EntityFlag_MarkedForDestruction;
+		gameState->enemy_alive_count--;
+
+		if (gameState->enemy_alive_count == 0)
+		{
+			_game_enemy_wave_create(gameState, arena, assets, 4);
+		}
 	}
 }
 
@@ -406,8 +422,36 @@ Animation* _game_graphics_animation_allocate(GameState* game_state, MemoryArena*
 	}
 	else
 	{
-		result = memory_AllocateStruct(arena, Animation);
+		result = memory_struct_zero_allocate(arena, Animation);
 		result->next = 0;
 	}
 	return result;
+}
+
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 count)
+{
+	float enemyWidth = 32;
+	float screenWidth = 320;
+	float spacing = screenWidth / (float)count;
+
+	for (u32 i = 0; i < count; i++)
+	{
+		float xPosition = spacing * (float)(i + 1) - enemyWidth / 2.0f - spacing / 2.0f;
+		Entity* enemy = _game_entity_textured_create(arena, game_state, math_vec2f(xPosition, 140.0f), math_vec2f(32.0f, 32.0f), assets->texture_enemy);
+		enemy->isVisible = TRUE;
+		enemy->entityFlags |= EntityFlag_EnemyBaseMover | EntityFlag_HasMotion | EntityFlag_HasCollider;
+		enemy->entityTags = EntityTag_Enemy;
+
+		enemy->move_switch_cooldown = 0.9f;
+		enemy->move_last_switch = time_now_seconds();
+		enemy->target_position = math_vec2f(xPosition - 64.0f, 140.0f);
+
+		enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
+		enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
+		enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
+		enemy->motion.friction = 1.0f;
+		enemy->collision_box.top_left = math_vec2f(0.0f, 32.0f);
+		enemy->collision_box.bottom_right = math_vec2f(32.0f, 0.0f);
+	}
+	game_state->enemy_alive_count = count;
 }

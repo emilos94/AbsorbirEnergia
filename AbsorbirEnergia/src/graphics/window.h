@@ -15,7 +15,7 @@ struct Window {
 typedef struct Window Window;
 
 Window graphics_WindowCreate(char* title, size_t width, size_t height);
-U32 graphics_WindowShouldClose(Window* window);
+u32 graphics_WindowShouldClose(Window* window);
 void graphics_WindowClear(); 
 void graphics_SwapBuffersAndPollEvents(Window* window);
 void graphics_WindowTerminate();

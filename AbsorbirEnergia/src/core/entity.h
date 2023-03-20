@@ -46,10 +46,11 @@ enum EntityTags
 struct Entity
 {
 	struct Entity* next; // to enable free list
+	struct Entity* prev; // to enable free list
 
-	U32 entityId;
-	U32 entityFlags;
-	U32 entityTags;
+	u32 entityId;
+	u32 entityFlags;
+	u32 entityTags;
 
 	Transform transform;
 	Texture texture;
@@ -57,21 +58,31 @@ struct Entity
 
 	SpriteSheet spriteSheet;
 	Animation* animations[3];
-	U32 animationCount;
-	U32 currentAnimation;
-	B32 isAnimationPlaying;
+	u32 animationCount;
+	u32 currentAnimation;
+	b32 isAnimationPlaying;
 
-	B32 isVisible;
+	b32 isVisible;
 
 	float createdTime;
 	float timeToLive;
 
+	Vec2f target_position;
 	float move_last_switch;
 	float move_switch_cooldown;
 
 	CollisionBox collision_box;
 };
 typedef struct Entity Entity;
+
+#define entity_loopback(e, name)\
+	Entity* name = e;\
+	for(name; name != 0; name = name->prev)
+
+#define entity_loop(e, name)\
+	Entity* name = e;\
+	for(name; name != 0; name = name->next)
+
 
 void entity_set_zero(Entity* entity);
 

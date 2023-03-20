@@ -8,6 +8,8 @@
 #include "core/assets.h"
 #include "game.h"
 
+#define DEBUG_RENDER_COLLISION_QUADS 1
+
 int main(void) 
 {	
 	Window window = graphics_WindowCreate("Absorbir energia", 1280, 720);
@@ -21,6 +23,7 @@ int main(void)
 	MemoryArena* arena = memory_MemoryArenaCreate(memory_Megabytes(1));
 
 	ShaderProgram shaderProgram = graphics_ShaderLoad(arena, "res/shaders/default.vert", "res/shaders/default.frag");
+	ShaderProgram shader_quad_color = graphics_ShaderLoad(arena, "res/shaders/color.vert", "res/shaders/color.frag");
 	memory_MemoryArenaReset(arena);
 	graphics_RendererInit(arena);
 
@@ -30,13 +33,15 @@ int main(void)
 	Mat4f projectionMatrix = math_Mat4Orthographic(0.0f, 320.0f, 0.0f, 180.0f, -1.0f, 1.0f);
 	graphics_ShaderBind(shaderProgram);
 	graphics_ShaderSetUniformMat4(shaderProgram, "projectionMatrix", &projectionMatrix);
-	graphics_ShaderUnbind(shaderProgram);
+	graphics_ShaderBind(shader_quad_color);
+	graphics_ShaderSetUniformMat4(shader_quad_color, "projectionMatrix", &projectionMatrix);
+	graphics_ShaderUnbind();
 
 	float secondsPerUpdate = 1.0f / 60.0f;
 	float previous = glfwGetTime();
 	float lag = 0.0f;
 	
-	U32 updateCounter = 0;
+	u32 updateCounter = 0;
 	float secondCounter = 0.0f;
 
 	while (!graphics_WindowShouldClose(&window) && !input_IsKeyPressed(GLFW_KEY_ESCAPE))
@@ -56,8 +61,8 @@ int main(void)
 		}
 
 		gameState->secondsSinceStart += elapsed;
-
-		while (lag >= secondsPerUpdate)
+		
+		if (lag >= secondsPerUpdate)
 		{
 			lag -= secondsPerUpdate;
 			updateCounter++;
@@ -66,12 +71,7 @@ int main(void)
 			game_Update(gameState, arena, assets, secondsPerUpdate);
 
 			graphics_WindowClear();
-			for (U32 i = 0; i < gameState->entity_active_count; i++)
-			{
-				U32 entity_handle = gameState->entity_active_entities[i];
-				Entity* e = &gameState->entities[entity_handle];
-				graphics_RenderEntity(arena, shaderProgram, e);
-			}
+			game_render(gameState, shaderProgram, shader_quad_color);
 
 			input_ClearJustPressed();
 			graphics_SwapBuffersAndPollEvents(&window);

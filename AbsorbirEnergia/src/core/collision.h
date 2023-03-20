@@ -10,7 +10,7 @@ struct CollisionBox
 };
 typedef struct CollisionBox CollisionBox;
 
-B32 collision_check_aabb_aabb(Vec2f either_offset, CollisionBox either, Vec2f other_offset, CollisionBox other);
+b32 collision_check_aabb_aabb(Vec2f either_offset, CollisionBox either, Vec2f other_offset, CollisionBox other);
 
 #endif // !COLLISION_H
 

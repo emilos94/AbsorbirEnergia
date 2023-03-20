@@ -6,6 +6,8 @@
 #include "core/input.h"
 #include "core/time.h"
 #include "graphics/texture.h"
+#include "graphics/shader_program.h"
+#include "graphics/renderer.h"
 #include "math/math_util.h"
 
 #define ENTITY_MAX 100
@@ -16,7 +18,7 @@ struct PlayerShieldState
 	float lastExpired;
 	float cooldown;
 	float duration;
-	B32 isActive;
+	b32 isActive;
 };
 typedef struct PlayerShieldState PlayerShieldState;
 
@@ -29,19 +31,21 @@ typedef struct PlayerShootState PlayerShootState;
 
 struct GameState
 {
-	Entity* entities;
-	U32 entityCount;
+	u32 entity_active_count, entity_free_count;
 
-	U32* entity_active_entities;
-	U32* entity_active_id_to_index;
-	U32 entity_active_count;
+	Entity* entity_first_free;
+	Entity* entity_first_active;
+	Entity* entity_last_active;
 
-	Entity* first_free_entity;
 	Animation* first_free_animation;
+
+	u32 enemy_alive_count;
 
 	float secondsSinceStart;
 
-	U32 playerHandle, playerShieldHandle;
+	Entity* player;
+	Entity* player_shield;
+
 	PlayerShieldState playerShieldState;
 	PlayerShootState playerShootState;
 };
@@ -51,13 +55,16 @@ GameState* game_Init(MemoryArena* arena, Assets* assets);
 
 void game_Input(GameState* gameState, MemoryArena* arena, Assets* assets);
 void game_Update(GameState* gameState, MemoryArena* arena, Assets* assets, float delta);
+void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProgram shader_quad_colored);
 
-Entity* _game_entity_create(GameState* gameState, Vec2f position, Vec2f scale);
-Entity* _game_entity_textured_create(GameState* gameState, MemoryArena* arena, Vec2f position, Vec2f scale, Texture texture);
-Entity* _game_entity_create(GameState* gameState, Vec2f position, Vec2f scale);
+Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale);
+Entity* _game_entity_textured_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale, Texture texture);
+Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale);
 Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position);
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position);
 void _game_entity_free(GameState* gameState, Entity* entity);
+
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 count);
 
 void _game_playerShieldUpdate(GameState* gameState);
 void _game_animation_update(Entity* entity, float delta);

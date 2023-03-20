@@ -19,7 +19,8 @@ Mat4f math_Mat4Identity();
 void math_Mat4SetIdentity(Mat4f* mat4);
 void math_Mat4SetZero(Mat4f* mat4);
 Mat4f math_Mat4Orthographic(float left, float right, float bottom, float top, float near, float far);
-Mat4f math_Mat4ModelMatrix(Transform* transform);
+Mat4f math_Mat4ModelMatrixTransform(Transform* transform);
+Mat4f math_Mat4ModelMatrix(Vec2f position, Vec2f scale, float rotation);
 
 void math_Mat4Mul(Mat4f* left, Mat4f* right, Mat4f* destination);
 

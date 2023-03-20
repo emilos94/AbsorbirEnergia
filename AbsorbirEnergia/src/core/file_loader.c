@@ -4,7 +4,7 @@
 FileResult* file_ReadFileToCharArray(MemoryArena* arena, char* path)
 {
 	char* buffer = 0;
-	U32 length;
+	u32 length;
 	FILE* file = fopen(path, "rb");
 	ASSERT(file);
 
@@ -19,7 +19,7 @@ FileResult* file_ReadFileToCharArray(MemoryArena* arena, char* path)
 	fclose(file);
 	
 	buffer[length] = '\0';
-	FileResult* fileResult = memory_AllocateStruct(arena, FileResult);
+	FileResult* fileResult = memory_struct_zero_allocate(arena, FileResult);
 	ASSERT(fileResult);
 
 	fileResult->fileContents = buffer;
@@ -30,7 +30,7 @@ FileResult* file_ReadFileToCharArray(MemoryArena* arena, char* path)
 
 FileImageResult* file_LoadImage(MemoryArena* arena, char* path)
 {
-	FileImageResult* fileImageResult = memory_AllocateStruct(arena, FileImageResult);
+	FileImageResult* fileImageResult = memory_struct_zero_allocate(arena, FileImageResult);
 
 	unsigned char* data = stbi_load(path, &fileImageResult->width, &fileImageResult->height, &fileImageResult->nrChannels, 0);
 	if (!data)

@@ -3,9 +3,9 @@
 
 Assets* assets_load(MemoryArena* arena)
 {
-	Assets* assets = memory_AllocateStruct(arena, Assets);
+	Assets* assets = memory_struct_zero_allocate(arena, Assets);
 
-	U32 initial_offset = arena->offset;
+	u32 initial_offset = arena->offset;
 	assets->texture_player = graphics_TextureLoad(arena, "res/images/player.png");
 	assets->texture_background = graphics_TextureLoad(arena, "res/images/background.png");
 	assets->texture_electric_shield = graphics_TextureLoad(arena, "res/images/electric_shield.png");

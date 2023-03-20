@@ -43,7 +43,7 @@ VertexArrayObject graphics_VaoCreate()
 	return vao;
 }
 
-void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, U32 index, U32 elementsPerEntry, float* values, U32 valueCount, U32 isPositions)
+void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, u32 isPositions)
 {
 	GLClearErrors();
 
@@ -70,6 +70,20 @@ void graphics_VaoRender(VertexArrayObject* vao)
 }
 
 
+void graphics_render_quad_color(ShaderProgram shader, Vec2f bottom_left, Vec2f top_right,
+	float r, float g, float b)
+{
+	graphics_ShaderBind(shader);
+
+	Vec2f scale = math_vec2f(top_right.x - bottom_left.x, top_right.y - bottom_left.y);
+	Mat4f model = math_Mat4ModelMatrix(bottom_left, scale, 0.0f);
+	graphics_ShaderSetUniformMat4(shader, "model", &model);
+	graphics_shader_uniform_3f(shader, "color", r, g, b);
+	graphics_VaoRender(&quadVao);
+
+	graphics_ShaderUnbind();
+}
+
 void graphics_VaoDestroy(VertexArrayObject* vao)
 {
 	GLCall(glDeleteBuffers(1, &vao->vertexBufferId[0]));
@@ -77,18 +91,18 @@ void graphics_VaoDestroy(VertexArrayObject* vao)
 	GLCall(glDeleteVertexArrays(1, &vao->vertexArrayId));
 }
 
-void graphics_RenderEntity(MemoryArena* arena, ShaderProgram shader, Entity* entity)
+void graphics_entity_render(ShaderProgram shader, Entity* entity)
 {
 	if (!entity->isVisible) return;
 
 	graphics_ShaderBind(shader);
 
-	Mat4f model = math_Mat4ModelMatrix(&entity->transform);
+	Mat4f model = math_Mat4ModelMatrixTransform(&entity->transform);
 	graphics_ShaderSetUniformMat4(shader, "model", &model);
 
 	if (entity->entityFlags & EntityFlag_HasAnimations)
 	{
-		Animation* animation = &entity->animations[entity->currentAnimation];
+		Animation* animation = entity->animations[entity->currentAnimation];
 		graphics_TextureBind(&entity->spriteSheet.texture);
 		graphics_ShaderSetUniformF(shader, "spriteCount", (float)entity->spriteSheet.spriteCount);
 		graphics_ShaderSetUniformF(shader, "spriteIndex", (float)animation->spriteIndex);

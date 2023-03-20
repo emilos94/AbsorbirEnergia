@@ -13,7 +13,8 @@ void graphics_ShaderUnbind();
 void graphics_ShaderDestroy(ShaderProgram shaderProgram);
 
 void graphics_ShaderSetUniformF(ShaderProgram shaderProgram, char* name, float value);
+void graphics_shader_uniform_3f(ShaderProgram shaderProgram, char* name, float x, float y, float z);
 void graphics_ShaderSetUniformMat4(ShaderProgram shaderProgram, char* name, Mat4f* mat4);
-U32 _shader_LoadShaderSource(MemoryArena* arena, char* path, U32 shaderType);
+u32 _shader_LoadShaderSource(MemoryArena* arena, char* path, u32 shaderType);
 
 #endif // !SHADER_PROGRAM_H

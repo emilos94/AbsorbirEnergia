@@ -10,6 +10,6 @@
 float math_ToRadians(float angle);
 float math_MaxF(float a, float b);
 float math_MinF(float a, float b);
-B32 math_FloatEquals(float a, float b);
+b32 math_float_equals(float a, float b);
 
 #endif // !MATH_UTIL_H

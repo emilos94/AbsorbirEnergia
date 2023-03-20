@@ -1,6 +1,6 @@
 #include "spritesheet.h"
 
-SpriteSheet graphics_spritesheet_create(Texture texture, U32 spriteCount)
+SpriteSheet graphics_spritesheet_create(Texture texture, u32 spriteCount)
 {
 	SpriteSheet spriteSheet;
 	spriteSheet.texture = texture;
@@ -9,7 +9,7 @@ SpriteSheet graphics_spritesheet_create(Texture texture, U32 spriteCount)
 	return spriteSheet;
 }
 
-void graphics_animation_set(Animation* animation, U32 spriteIndexMin, U32 spriteIndexMax, U32 repeat, float durationSeconds)
+void graphics_animation_set(Animation* animation, u32 spriteIndexMin, u32 spriteIndexMax, u32 repeat, float durationSeconds)
 {
 	animation->spriteIndex = 0;
 	animation->spriteIndexMin = spriteIndexMin;

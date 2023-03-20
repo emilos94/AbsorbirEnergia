@@ -3,7 +3,7 @@
 Mat4f math_Mat4Identity()
 {
 	Mat4f mat4;
-	for (U32 i = 0; i < 16; i++)
+	for (u32 i = 0; i < 16; i++)
 	{
 		mat4.values[i] = 0;
 	}
@@ -19,7 +19,7 @@ Mat4f math_Mat4Identity()
 
 void math_Mat4SetIdentity(Mat4f* mat4)
 {
-	for (U32 i = 0; i < 16; i++)
+	for (u32 i = 0; i < 16; i++)
 	{
 		mat4->values[i] = 0;
 	}
@@ -32,7 +32,7 @@ void math_Mat4SetIdentity(Mat4f* mat4)
 
 void math_Mat4SetZero(Mat4f* mat4)
 {
-	for (U32 i = 0; i < 16; i++)
+	for (u32 i = 0; i < 16; i++)
 	{
 		mat4->values[i] = 0;
 	}
@@ -54,7 +54,7 @@ Mat4f math_Mat4Orthographic(float left, float right, float bottom, float top, fl
 	return mat4;
 }
 
-Mat4f math_Mat4ModelMatrix(Transform* transform)
+Mat4f math_Mat4ModelMatrixTransform(Transform* transform)
 {
 	Mat4f model = math_Mat4Identity();
 
@@ -65,20 +65,31 @@ Mat4f math_Mat4ModelMatrix(Transform* transform)
 	return model;
 }
 
+Mat4f math_Mat4ModelMatrix(Vec2f position, Vec2f scale, float rotation)
+{
+	Mat4f model = math_Mat4Identity();
+
+	math_Mat4Translate(&model, position);
+	math_Mat4Scale(&model,scale);
+	math_Mat4RotateZ(&model, rotation);
+
+	return model;
+}
+
 void math_Mat4Mul(Mat4f* left, Mat4f* right, Mat4f* destination)
 {
 	Mat4f temp;
 	math_Mat4SetZero(&temp);
 
-	for (U32 x = 0; x < 4; x++)
+	for (u32 x = 0; x < 4; x++)
 	{
-		for (U32 y = 0; y < 4; y++)
+		for (u32 y = 0; y < 4; y++)
 		{
 			float result = 0.0f;
-			for (U32 k = 0; k < 4; k++)
+			for (u32 k = 0; k < 4; k++)
 			{
-				U32 indexLeft = k + y * 4;
-				U32 indexRight = x + k * 4;
+				u32 indexLeft = k + y * 4;
+				u32 indexRight = x + k * 4;
 
 				temp.values[x + y * 4] += left->values[indexLeft] * right->values[indexRight];
 			}
@@ -91,7 +102,7 @@ void math_Mat4Mul(Mat4f* left, Mat4f* right, Mat4f* destination)
 
 void math_Mat4Copy(Mat4f* source, Mat4f* destination)
 {
-	for (U32 i = 0; i < 16; i++)
+	for (u32 i = 0; i < 16; i++)
 	{
 		destination->values[i] = source->values[i];
 	}

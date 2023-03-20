@@ -10,7 +10,7 @@
 struct Texture
 {
 	GLuint textureId;
-	U32 width, height;
+	u32 width, height;
 };
 typedef struct Texture Texture;
 
