@@ -63,6 +63,15 @@
     <ClCompile Include="src\core\time.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\collision.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\entity.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\assets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\window.h">
@@ -113,6 +122,12 @@
     <ClInclude Include="src\core\time.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\core\collision.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\assets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\shaders\default.frag">
@@ -138,5 +153,19 @@
     <Image Include="res\images\electric_shield.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\images\player_bullet.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\explosion.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\color.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\shaders\color.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

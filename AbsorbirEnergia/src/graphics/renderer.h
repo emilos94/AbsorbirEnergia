@@ -11,20 +11,21 @@ struct VertexArrayObject
 {
 	GLuint vertexArrayId;
 	GLuint vertexBufferId[2];
-	U32 verticesCount;
+	u32 verticesCount;
 };
 typedef struct VertexArrayObject VertexArrayObject;
 
 // Vertex array object
 VertexArrayObject graphics_VaoCreate();
-void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, U32 index, U32 elementsPerEntry, float* values, U32 valueCount, U32 isPositions);
+void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, u32 isPositions);
 void graphics_VaoRender(VertexArrayObject* vao);
 void graphics_VaoDestroy(VertexArrayObject* vao);
 
-
 // rendering
 void graphics_RendererInit(MemoryArena* arena);
-void graphics_RenderEntity(MemoryArena* arena, ShaderProgram shader, Entity* entity);
+void graphics_entity_render(ShaderProgram shader, Entity* entity);
+void graphics_render_quad_color(ShaderProgram shader, Vec2f bottom_left, Vec2f top_right,
+	float r, float g, float b);
 void graphics_RendererCleanup();
 
 #endif

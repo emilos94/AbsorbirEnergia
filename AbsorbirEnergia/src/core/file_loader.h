@@ -13,14 +13,14 @@
 struct FileResult
 {
 	char* fileContents;
-	U32 length;
+	u32 length;
 };
 typedef struct FileResult FileResult;
 
 struct FileImageResult
 {
 	char* fileContents;
-	U32 width, height, nrChannels;
+	u32 width, height, nrChannels;
 };
 typedef struct FileImageResult FileImageResult;
 

@@ -21,7 +21,7 @@ float math_MinF(float a, float b)
 }
 
 
-B32 math_FloatEquals(float a, float b)
+b32 math_float_equals(float a, float b)
 {
 	return math_Abs(a - b) <= FLOAT_EPSILON;
 }

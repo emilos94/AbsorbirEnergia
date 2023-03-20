@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -167,6 +167,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\core\assets.c" />
+    <ClCompile Include="src\core\collision.c" />
+    <ClCompile Include="src\core\entity.c" />
     <ClCompile Include="src\core\file_loader.c" />
     <ClCompile Include="src\core\memory_arena.c" />
     <ClCompile Include="src\core\stb_image.cpp" />
@@ -185,6 +188,8 @@
     <ClCompile Include="src\math\vec2f.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\core\assets.h" />
+    <ClInclude Include="src\core\collision.h" />
     <ClInclude Include="src\core\definitions.h" />
     <ClInclude Include="src\core\entity.h" />
     <ClInclude Include="src\core\file_loader.h" />
@@ -236,7 +241,13 @@
     <Image Include="res\images\base_enemy.png" />
     <Image Include="res\images\container.jpg" />
     <Image Include="res\images\electric_shield.png" />
+    <Image Include="res\images\explosion.png" />
     <Image Include="res\images\player.png" />
+    <Image Include="res\images\player_bullet.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\color.frag" />
+    <None Include="res\shaders\color.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

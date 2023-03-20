@@ -5,7 +5,10 @@
 #include "graphics/renderer.h"
 #include "graphics/window.h"
 #include "core/input.h"
+#include "core/assets.h"
 #include "game.h"
+
+#define DEBUG_RENDER_COLLISION_QUADS 1
 
 int main(void) 
 {	
@@ -20,22 +23,25 @@ int main(void)
 	MemoryArena* arena = memory_MemoryArenaCreate(memory_Megabytes(1));
 
 	ShaderProgram shaderProgram = graphics_ShaderLoad(arena, "res/shaders/default.vert", "res/shaders/default.frag");
-	memory_MemoryArenaReset(arena);
+	ShaderProgram shader_quad_color = graphics_ShaderLoad(arena, "res/shaders/color.vert", "res/shaders/color.frag");
 	memory_MemoryArenaReset(arena);
 	graphics_RendererInit(arena);
 
-	GameState* gameState = game_Init(arena);
+	Assets* assets = assets_load(arena);
+	GameState* gameState = game_Init(arena, assets);
 
 	Mat4f projectionMatrix = math_Mat4Orthographic(0.0f, 320.0f, 0.0f, 180.0f, -1.0f, 1.0f);
 	graphics_ShaderBind(shaderProgram);
 	graphics_ShaderSetUniformMat4(shaderProgram, "projectionMatrix", &projectionMatrix);
-	graphics_ShaderUnbind(shaderProgram);
+	graphics_ShaderBind(shader_quad_color);
+	graphics_ShaderSetUniformMat4(shader_quad_color, "projectionMatrix", &projectionMatrix);
+	graphics_ShaderUnbind();
 
 	float secondsPerUpdate = 1.0f / 60.0f;
 	float previous = glfwGetTime();
 	float lag = 0.0f;
 	
-	U32 updateCounter = 0;
+	u32 updateCounter = 0;
 	float secondCounter = 0.0f;
 
 	while (!graphics_WindowShouldClose(&window) && !input_IsKeyPressed(GLFW_KEY_ESCAPE))
@@ -55,28 +61,17 @@ int main(void)
 		}
 
 		gameState->secondsSinceStart += elapsed;
-
-		while (lag >= secondsPerUpdate)
+		
+		if (lag >= secondsPerUpdate)
 		{
 			lag -= secondsPerUpdate;
 			updateCounter++;
 
-			game_Input(gameState, arena);	
-			game_Update(gameState, arena, secondsPerUpdate);
+			game_Input(gameState, arena, assets);
+			game_Update(gameState, arena, assets, secondsPerUpdate);
 
 			graphics_WindowClear();
-			for (U32 i = 0; i < ENTITY_MAX; i++)
-			{
-				Entity* e = &gameState->entities[i];
-				if (e->isVisible)
-				{
-					if (e->entityId == 3)
-					{
-						int x = 10;
-					}
-					graphics_RenderEntity(arena, shaderProgram, e);
-				}
-			}
+			game_render(gameState, shaderProgram, shader_quad_color);
 
 			input_ClearJustPressed();
 			graphics_SwapBuffersAndPollEvents(&window);
@@ -85,10 +80,8 @@ int main(void)
 
 	graphics_ShaderDestroy(shaderProgram); 
 	graphics_RendererCleanup();
-
-	game_Cleanup(gameState);
-
 	graphics_WindowTerminate();
+	assets_cleanup(assets);
 	memory_MemoryArenaFree(arena);
 
 	return 0;

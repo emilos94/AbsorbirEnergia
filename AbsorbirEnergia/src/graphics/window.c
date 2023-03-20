@@ -32,7 +32,7 @@ Window graphics_WindowCreate(char* title, size_t width, size_t height)
 	return w;
 }
 
-U32 graphics_WindowShouldClose(Window* window)
+u32 graphics_WindowShouldClose(Window* window)
 {
 	if (glfwWindowShouldClose(window->handle)) return TRUE;
 
