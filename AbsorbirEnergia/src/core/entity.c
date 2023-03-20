@@ -27,6 +27,6 @@ void entity_set_zero(Entity* entity)
 	entity->move_last_switch = 0;
 	entity->move_switch_cooldown = 0;
 
-	math_vec2f_zero(&entity->collision_box.bottom_right);
-	math_vec2f_zero(&entity->collision_box.top_left);
+	math_vec2f_zero(&entity->collision_box.top_right);
+	math_vec2f_zero(&entity->collision_box.bottom_left);
 }

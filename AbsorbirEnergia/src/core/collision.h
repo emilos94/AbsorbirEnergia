@@ -6,7 +6,7 @@
 
 struct CollisionBox
 {
-	Vec2f top_left, bottom_right;
+	Vec2f bottom_left, top_right;
 };
 typedef struct CollisionBox CollisionBox;
 

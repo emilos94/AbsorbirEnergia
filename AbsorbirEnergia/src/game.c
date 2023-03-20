@@ -22,8 +22,8 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	player->motion.direction = math_vec2f(0.0f, 0.0f);
 	player->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider;
 
-	player->collision_box.top_left = math_vec2f(2.0f, 28.0f);
-	player->collision_box.bottom_right = math_vec2f(28.0f, 2.0f);
+	player->collision_box.bottom_left = math_vec2f(4.0f, 4.0f);
+	player->collision_box.top_right = math_vec2f(28.0f, 28.0f);
 	gameState->player = player;
 
 	// player shield
@@ -43,8 +43,8 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	shield->isVisible = FALSE;
 	shield->isAnimationPlaying = FALSE;
 
-	shield->collision_box.top_left = math_vec2f(0.0f, 32.0f);
-	shield->collision_box.bottom_right = math_vec2f(32.0f, 0.0f);
+	shield->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+	shield->collision_box.top_right = math_vec2f(32.0f, 32.0f);
 	gameState->player_shield = shield;
 
 	PlayerShieldState* playerShieldState = &gameState->playerShieldState;
@@ -212,11 +212,11 @@ void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProg
 		}
 
 		graphics_entity_render(shader_default, entity);
-		if (entity->entityFlags & EntityFlag_HasCollider && 1)
+		if (entity->entityFlags & EntityFlag_HasCollider && DEBUG_RENDER_COLLISION_BOXES)
 		{
-			graphics_render_quad_color(shader_quad_colored, entity->transform.position,
-				math_Vec2fAdd(entity->transform.position, entity->transform.scale),
-				1.0f, 0.0f, 0.0f);
+			Vec2f bottom_left = math_Vec2fAdd(entity->transform.position, entity->collision_box.bottom_left);
+			Vec2f top_right = math_Vec2fAdd(entity->transform.position, entity->collision_box.top_right);
+			graphics_render_quad_color(shader_quad_colored, bottom_left, top_right, 1.0f, 0.0f, 0.0f);
 		}
 	}
 }
@@ -324,8 +324,8 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 	bullet->createdTime = time_now_seconds();
 	bullet->timeToLive = 3.0f;
 
-	bullet->collision_box.top_left = math_vec2f(0.0f, 16.0f);
-	bullet->collision_box.bottom_right = math_vec2f(16.0f, 0.0f);
+	bullet->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+	bullet->collision_box.top_right = math_vec2f(16.0f, 16.0f);
 
 	return bullet;
 }
@@ -450,8 +450,8 @@ void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* 
 		enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
 		enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
 		enemy->motion.friction = 1.0f;
-		enemy->collision_box.top_left = math_vec2f(0.0f, 32.0f);
-		enemy->collision_box.bottom_right = math_vec2f(32.0f, 0.0f);
+		enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+		enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
 	}
 	game_state->enemy_alive_count = count;
 }

@@ -11,6 +11,7 @@
 #include "math/math_util.h"
 
 #define ENTITY_MAX 100
+#define DEBUG_RENDER_COLLISION_BOXES 0
 
 struct PlayerShieldState
 {
