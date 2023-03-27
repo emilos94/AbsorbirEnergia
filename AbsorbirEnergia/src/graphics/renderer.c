@@ -43,6 +43,27 @@ VertexArrayObject graphics_VaoCreate()
 	return vao;
 }
 
+
+VertexArrayObject graphics_vao_quad_create()
+{
+	VertexArrayObject vao = graphics_VaoCreate();
+	float vertices[12];
+	vertices[0] = 0.0f;
+	vertices[1] = 0.0f;
+	vertices[2] = 1.0f;
+	vertices[3] = 0.0f;
+	vertices[4] = 1.0f;
+	vertices[5] = 1.0f;
+	vertices[6] = 1.0f;
+	vertices[7] = 1.0f;
+	vertices[8] = 0.0f;
+	vertices[9] = 1.0f;
+	vertices[10] = 0.0f;
+	vertices[11] = 0.0f;
+	graphics_VaoAddFloatBuffer(&vao, 0, 2, &vertices[0], 12, TRUE);
+	return vao;
+}
+
 void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, u32 isPositions)
 {
 	GLClearErrors();

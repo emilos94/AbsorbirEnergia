@@ -78,6 +78,12 @@ void graphics_shader_uniform_3f(ShaderProgram shaderProgram, char* name, float x
 	GLCall(glUniform3f(location, x, y, z));
 }
 
+void graphics_shader_uniform_vec3f(ShaderProgram shaderProgram, char* name, Vec3f* vec)
+{
+	u32 location = glGetUniformLocation(shaderProgram, name);
+	GLCall(glUniform3f(location, vec->x, vec->y, vec->z));
+}
+
 void graphics_ShaderSetUniformMat4(ShaderProgram shaderProgram, char* name, Mat4f* mat4)
 {
 	u32 location = glGetUniformLocation(shaderProgram, name);

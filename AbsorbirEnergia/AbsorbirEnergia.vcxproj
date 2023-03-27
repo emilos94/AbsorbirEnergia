@@ -186,6 +186,8 @@
     <ClCompile Include="src\math\math_util.c" />
     <ClCompile Include="src\math\matrix4f.c" />
     <ClCompile Include="src\math\vec2f.c" />
+    <ClCompile Include="src\math\vec3f.c" />
+    <ClCompile Include="src\ui\ui.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\assets.h" />
@@ -206,6 +208,8 @@
     <ClInclude Include="src\math\math_util.h" />
     <ClInclude Include="src\math\matrix4f.h" />
     <ClInclude Include="src\math\vec2f.h" />
+    <ClInclude Include="src\math\vec3f.h" />
+    <ClInclude Include="src\ui\ui.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="res\shaders\*.*">
@@ -248,6 +252,8 @@
   <ItemGroup>
     <None Include="res\shaders\color.frag" />
     <None Include="res\shaders\color.vert" />
+    <None Include="res\shaders\ui.frag" />
+    <None Include="res\shaders\ui.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

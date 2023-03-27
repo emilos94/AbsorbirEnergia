@@ -25,6 +25,7 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	player->collision_box.bottom_left = math_vec2f(4.0f, 4.0f);
 	player->collision_box.top_right = math_vec2f(28.0f, 28.0f);
 	gameState->player = player;
+	gameState->entity_background = background;
 
 	// player shield
 	Entity* shield = _game_entity_create(arena, gameState, player->transform.position, player->transform.scale);
@@ -58,6 +59,8 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	playerShootState->lastUsed = 0.0f;
 
 	_game_enemy_wave_create(gameState, arena, assets, 4);
+
+	gameState->main_menu_on = TRUE;
 
 	return gameState;
 }
@@ -114,6 +117,11 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 {
 	entity_loopback(game_state->entity_last_active, e)
 	{
+		if (game_state->main_menu_on)
+		{
+			break;
+		}
+
 		if (e->entityFlags & EntityFlag_EnemyBaseMover)
 		{
 			f32 distance = math_vec2f_distance(e->transform.position, e->target_position);
@@ -199,11 +207,37 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			_game_entity_free(game_state, entity);
 		}
 	}
+
+	if (game_state->main_menu_on)
+	{
+		f32 button_width = 80.0f;
+		f32 center_x = graphics_window_render_width() / 2.0f - button_width / 2.0f;
+		UI_Info* button_play = ui_button(center_x, 120.0f, button_width, 32.0f);
+		if (button_play->hot)
+		{
+			math_vec3f_set(1.0f, 0.0f, 0.0f, &button_play->widget->color);
+		}
+		else
+		{
+			math_vec3f_set(1.0f, 0.0f, 1.0f, &button_play->widget->color);
+		}
+
+		if (button_play->active)
+		{
+			game_state->main_menu_on = FALSE;
+		}
+	}
 }
 
 
 void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProgram shader_quad_colored)
 {
+	if (game_state->main_menu_on)
+	{
+		graphics_entity_render(shader_default, game_state->entity_background);
+		return;
+	}
+
 	entity_loop(game_state->entity_first_active, entity)
 	{
 		if (!entity->isVisible)

@@ -9,6 +9,7 @@
 #include "graphics/shader_program.h"
 #include "graphics/renderer.h"
 #include "math/math_util.h"
+#include "ui/ui.h"
 
 #define ENTITY_MAX 100
 #define DEBUG_RENDER_COLLISION_BOXES 0
@@ -46,9 +47,12 @@ struct GameState
 
 	Entity* player;
 	Entity* player_shield;
+	Entity* entity_background;
 
 	PlayerShieldState playerShieldState;
 	PlayerShootState playerShootState;
+
+	b8 main_menu_on;
 };
 typedef struct GameState GameState;
 

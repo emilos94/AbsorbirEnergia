@@ -17,6 +17,7 @@ typedef struct VertexArrayObject VertexArrayObject;
 
 // Vertex array object
 VertexArrayObject graphics_VaoCreate();
+VertexArrayObject graphics_vao_quad_create();
 void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, u32 isPositions);
 void graphics_VaoRender(VertexArrayObject* vao);
 void graphics_VaoDestroy(VertexArrayObject* vao);

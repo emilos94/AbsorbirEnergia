@@ -72,6 +72,12 @@
     <ClCompile Include="src\core\assets.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\vec3f.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\ui.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\window.h">
@@ -128,6 +134,12 @@
     <ClInclude Include="src\core\assets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ui\ui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec3f.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\shaders\default.frag">
@@ -165,6 +177,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="res\shaders\color.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\shaders\ui.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\shaders\ui.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

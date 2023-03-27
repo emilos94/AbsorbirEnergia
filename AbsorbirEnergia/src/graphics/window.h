@@ -22,4 +22,11 @@ void graphics_WindowTerminate();
 
 void _graphics_WindowFramebufferSizeCallback(GLFWwindow* window, int width, int height);
 
+f32 graphics_window_width();
+f32 graphics_window_height();
+f32 graphics_window_render_scale_x();
+f32 graphics_window_render_scale_y();
+f32 graphics_window_render_width();
+f32 graphics_window_render_height();
+
 #endif // !WINDOW_H

@@ -9,7 +9,6 @@
 #define b32 unsigned int
 #define b8 uint8_t
 
-
 #define TRUE 1
 #define FALSE 0
 

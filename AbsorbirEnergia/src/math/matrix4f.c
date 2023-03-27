@@ -160,3 +160,12 @@ void math_Mat4PrettyPrint(Mat4f* mat4)
 		mat4->values[12], mat4->values[13], mat4->values[14], mat4->values[15]
 	);
 }
+
+void math_mat4_model(Vec2f position, Vec2f scale, float rotation, Mat4f* destination)
+{
+	math_Mat4SetIdentity(destination);
+
+	math_Mat4Translate(destination, position);
+	math_Mat4Scale(destination, scale);
+	math_Mat4RotateZ(destination, rotation);
+}

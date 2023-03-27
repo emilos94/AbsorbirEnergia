@@ -6,6 +6,7 @@
 #include "graphics/window.h"
 #include "core/input.h"
 #include "core/assets.h"
+#include "ui/ui.h"
 #include "game.h"
 
 #define DEBUG_RENDER_COLLISION_QUADS 1
@@ -30,12 +31,18 @@ int main(void)
 	Assets* assets = assets_load(arena);
 	GameState* gameState = game_Init(arena, assets);
 
-	Mat4f projectionMatrix = math_Mat4Orthographic(0.0f, 320.0f, 0.0f, 180.0f, -1.0f, 1.0f);
+	Mat4f projectionMatrix = math_Mat4Orthographic(
+		0.0f, 
+		graphics_window_render_width(), 
+		0.0f, 
+		graphics_window_render_height(), -1.0f, 1.0f);
 	graphics_ShaderBind(shaderProgram);
 	graphics_ShaderSetUniformMat4(shaderProgram, "projectionMatrix", &projectionMatrix);
 	graphics_ShaderBind(shader_quad_color);
 	graphics_ShaderSetUniformMat4(shader_quad_color, "projectionMatrix", &projectionMatrix);
 	graphics_ShaderUnbind();
+
+	ui_initialize(&projectionMatrix);
 
 	float secondsPerUpdate = 1.0f / 60.0f;
 	float previous = glfwGetTime();
@@ -73,8 +80,11 @@ int main(void)
 			graphics_WindowClear();
 			game_render(gameState, shaderProgram, shader_quad_color);
 
+			ui_render_flush();
+
 			input_ClearJustPressed();
 			graphics_SwapBuffersAndPollEvents(&window);
+
 		}
 	}
 
@@ -83,6 +93,7 @@ int main(void)
 	graphics_WindowTerminate();
 	assets_cleanup(assets);
 	memory_MemoryArenaFree(arena);
+	ui_render_destroy();
 
 	return 0;
 }
