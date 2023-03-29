@@ -7,24 +7,28 @@
 
 #include "memory_arena.h"
 #include <stb/stb_image.h>
+#include "mystr.h"
 
 #include <stdio.h>
 
 struct FileResult
 {
-	char* fileContents;
+	char* text;
 	u32 length;
 };
 typedef struct FileResult FileResult;
 
 struct FileImageResult
 {
-	char* fileContents;
+	char* text;
 	u32 width, height, nrChannels;
 };
 typedef struct FileImageResult FileImageResult;
 
 FileResult* file_ReadFileToCharArray(MemoryArena* arena, char* path);
 FileImageResult* file_LoadImage(MemoryArena* arena, char* path);
+
+s32 file_char_array_find_indexof(FileResult* file_result, u32 file_offset, char* text_to_find, u32 text_length);
+
 
 #endif

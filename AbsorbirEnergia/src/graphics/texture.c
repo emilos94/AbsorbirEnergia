@@ -13,7 +13,7 @@ Texture graphics_TextureLoad(MemoryArena* arena, char* path)
 	GLCall(glBindTexture(GL_TEXTURE_2D, texture.textureId));
 	GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 	GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, fileImageResult->fileContents));
+	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, fileImageResult->text));
 
 	return texture;
 }

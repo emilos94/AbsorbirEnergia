@@ -43,7 +43,7 @@ u32 _shader_LoadShaderSource(MemoryArena* arena, char* path, u32 shaderType)
 	FileResult* fileResult = file_ReadFileToCharArray(arena, path);
 
 	u32 shaderId = glCreateShader(shaderType);
-	GLCall(glShaderSource(shaderId, 1, &fileResult->fileContents, NULL));
+	GLCall(glShaderSource(shaderId, 1, &fileResult->text, NULL));
 	GLCall(glCompileShader(shaderId));
 
 	int success;

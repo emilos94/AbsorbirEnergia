@@ -4,6 +4,8 @@
 #include "../core/memory_arena.h"
 #include "../core/definitions.h"
 #include "../core/input.h"
+#include "../core/mystr.h"
+#include "../core/file_loader.h"
 #include "../graphics/shader_program.h"
 #include "../graphics/renderer.h"
 #include "../math/vec2f.h"
@@ -84,4 +86,46 @@ void ui_render_destroy();
 
 
 */
+
+/*** TEXT ***/
+struct UI_Characterinfo
+{
+	char c;
+
+	u32 x;
+	u32 y;
+	u32 width;
+	u32 height;
+	s32 x_offset;
+	s32 y_offset;
+	u32 x_advance;
+
+	f32 uv_x_min;
+	f32 uv_y_min;
+	f32 uv_x_max;
+	f32 uv_y_max;
+};
+typedef struct UI_Characterinfo UI_Characterinfo;
+
+struct UI_Font
+{
+	Mystr* font_name;
+
+	u32 character_count;
+	UI_Characterinfo* character_infos;
+
+	u32 padding_left;
+	u32 padding_right;
+	u32 padding_top;
+	u32 padding_bottom;
+	u32 line_height;
+
+	u32 image_width;
+	u32 image_height;
+	Texture texture;
+};
+typedef struct UI_Font UI_Font;
+
+UI_Font* ui_text_font_load(MemoryArena* arena_temp, MemoryArena* arena_permanent, char* path_specification, char* path_texture);
+
 #endif

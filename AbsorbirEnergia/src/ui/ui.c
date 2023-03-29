@@ -96,3 +96,66 @@ void ui_render_destroy()
 	memory_MemoryArenaFree(arena_ui);
 	initialized = FALSE;
 }
+
+u32 ui_font_parse_property_u32(FileResult* file_result, u32 file_offset, char* property_name, u32 property_name_length, u32* destination)
+{
+	u32 new_offset = mystr_char_array_find_indexof(file_result->text + file_offset, file_result->length - file_offset, property_name, property_name_length);
+	new_offset += property_name_length;
+	ASSERT(mystr_u32_parse(file_result->text + new_offset, destination));
+	return new_offset;
+}
+
+u32 ui_font_parse_property_u32(FileResult* file_result, u32 file_offset, char* property_name, u32 property_name_length, s32* destination)
+{
+	u32 new_offset = mystr_char_array_find_indexof(file_result->text + file_offset, file_result->length - file_offset, property_name, property_name_length);
+	new_offset += property_name_length;
+	ASSERT(mystr_s32_parse(file_result->text + new_offset, destination));
+	return new_offset;
+}
+
+UI_Font* ui_text_font_load(MemoryArena* arena_temp, MemoryArena* arena_permanent, char* path_specification, char* path_texture)
+{
+	UI_Font* font = memory_struct_zero_allocate(arena_permanent, UI_Font);
+
+	FileResult* result = file_ReadFileToCharArray(arena_temp, path_specification);
+	u32 text_index = 0;
+
+	text_index = ui_font_parse_property_u32(result, text_index, "padding=", 8, &font->padding_left);
+	text_index = ui_font_parse_property_u32(result, text_index, ",", 1, &font->padding_top);
+	text_index = ui_font_parse_property_u32(result, text_index, ",", 1, &font->padding_right);
+	text_index = ui_font_parse_property_u32(result, text_index, ",", 1, &font->padding_bottom);
+	text_index = ui_font_parse_property_u32(result, text_index, "lineHeight=", 11, &font->line_height);
+	text_index = ui_font_parse_property_u32(result, text_index, "lineHeight=", 11, &font->line_height);
+	text_index = ui_font_parse_property_u32(result, text_index, "scaleW=", 7, &font->image_width);
+	text_index = ui_font_parse_property_u32(result, text_index, "scaleH=", 7, &font->image_height);
+	text_index = ui_font_parse_property_u32(result, text_index, "chars count=", 12, &font->character_count);
+
+	font->character_infos = memory_AllocateArray(arena_permanent, UI_Characterinfo, font->character_count);
+
+	for (u32 i = 0; i < font->character_count; i++)
+	{
+		// parse character line
+		u32 character_id = 0;
+		text_index = ui_font_parse_property_u32(result, text_index, "char id=", 8, &character_id);
+
+		UI_Characterinfo* info = font->character_infos + (i % font->character_count);
+		info->c = (char)character_id;
+
+		text_index = ui_font_parse_property_u32(result, text_index, "x=", 2, &info->x);
+		text_index = ui_font_parse_property_u32(result, text_index, "y=", 2, &info->y);
+		text_index = ui_font_parse_property_u32(result, text_index, "width=", 6, &info->width);
+		text_index = ui_font_parse_property_u32(result, text_index, "height=", 7, &info->height);
+
+		text_index = ui_font_parse_property_s32(result, text_index, "xoffset=", 8, &info->x_offset);
+		text_index = ui_font_parse_property_s32(result, text_index, "xoffset=", 8, &info->y_offset);
+
+		text_index = ui_font_parse_property_u32(result, text_index, "xadvance=", 9, &info->x_advance);
+
+		info->uv_x_min = (f32)info->x / (f32)font->image_width;
+		info->uv_y_min = (f32)info->y / (f32)font->image_height;
+		info->uv_x_max = (f32)(info->x + info->width) / (f32)font->image_width;
+		info->uv_x_max = (f32)(info->y + info->height) / (f32)font->image_height;
+	}
+
+	return font;
+}
