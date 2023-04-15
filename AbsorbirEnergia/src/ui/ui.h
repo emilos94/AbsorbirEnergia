@@ -66,10 +66,7 @@ typedef struct UI_Render_State UI_Render_State;
 
 //UI_Widget* ui_widget_str(UI_WidgetFlags flags, char* text, u32 text_length);
 //UI_Info* ui_info_from_widget(UI_Widget* widget);
-void ui_initialize(Mat4f* projection_matrix);
-UI_Info* ui_button(f32 x, f32 y, f32 width, f32 height);
-void ui_render_flush();
-void ui_render_destroy();
+
 /* 
 *	if (game_state->main_menu_on)
 * {
@@ -95,7 +92,7 @@ struct UI_Characterinfo
 	u32 x;
 	u32 y;
 	u32 width;
-	u32 height;
+	s32 height;
 	s32 x_offset;
 	s32 y_offset;
 	u32 x_advance;
@@ -113,12 +110,14 @@ struct UI_Font
 
 	u32 character_count;
 	UI_Characterinfo* character_infos;
+	u32* character_info_id_to_index;
 
 	u32 padding_left;
 	u32 padding_right;
 	u32 padding_top;
 	u32 padding_bottom;
 	u32 line_height;
+	s32 base;
 
 	u32 image_width;
 	u32 image_height;
@@ -127,5 +126,28 @@ struct UI_Font
 typedef struct UI_Font UI_Font;
 
 UI_Font* ui_text_font_load(MemoryArena* arena_temp, MemoryArena* arena_permanent, char* path_specification, char* path_texture);
+UI_Characterinfo* ui_text_font_get_info(UI_Font* font, char c);
+
+struct UI_Text_State
+{
+	UI_Font* font_active;
+};
+typedef struct UI_Text_State UI_Text_State;
+
+struct UI_Text
+{
+	Mystr* text;
+	f32 font_size;
+	f32 width;
+};
+typedef struct UI_Text UI_Text;
+
+void ui_initialize(Mat4f* projection_matrix, UI_Font* font_default);
+UI_Info* ui_button(f32 x, f32 y, f32 width, f32 height);
+void ui_render_flush(void);
+void ui_render_destroy();
+
+UI_Text* ui_text_create(Mystr* text, UI_Font* font, f32 x, f32 y, f32 font_size, f32 line_width);
+void ui_text_flush(void);
 
 #endif

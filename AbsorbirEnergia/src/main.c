@@ -22,13 +22,16 @@ int main(void)
 	glEnable(GL_ALPHA_TEST);
 
 	MemoryArena* arena = memory_MemoryArenaCreate(memory_Megabytes(1));
+	MemoryArena* arena_temp = memory_MemoryArenaCreate(memory_Megabytes(5));
 
 	ShaderProgram shaderProgram = graphics_ShaderLoad(arena, "res/shaders/default.vert", "res/shaders/default.frag");
 	ShaderProgram shader_quad_color = graphics_ShaderLoad(arena, "res/shaders/color.vert", "res/shaders/color.frag");
 	memory_MemoryArenaReset(arena);
 	graphics_RendererInit(arena);
 
-	Assets* assets = assets_load(arena);
+	Assets* assets = assets_load(arena, arena_temp);
+	memory_MemoryArenaReset(arena_temp);
+
 	GameState* gameState = game_Init(arena, assets);
 
 	Mat4f projectionMatrix = math_Mat4Orthographic(
@@ -42,7 +45,7 @@ int main(void)
 	graphics_ShaderSetUniformMat4(shader_quad_color, "projectionMatrix", &projectionMatrix);
 	graphics_ShaderUnbind();
 
-	ui_initialize(&projectionMatrix);
+	ui_initialize(&projectionMatrix, assets->font_candara);
 
 	float secondsPerUpdate = 1.0f / 60.0f;
 	float previous = glfwGetTime();
@@ -80,11 +83,13 @@ int main(void)
 			graphics_WindowClear();
 			game_render(gameState, shaderProgram, shader_quad_color);
 
+			// todo: move text + ui into same pipe?
 			ui_render_flush();
+
+			ui_text_flush();
 
 			input_ClearJustPressed();
 			graphics_SwapBuffersAndPollEvents(&window);
-
 		}
 	}
 

@@ -4,7 +4,7 @@ static VertexArrayObject quadVao;
 
 void graphics_RendererInit(MemoryArena* arena)
 {
-	quadVao = graphics_VaoCreate();
+	quadVao = graphics_vao_create();
 	float* vertices = memory_AllocateArray(arena, float, 12);
 	vertices[0] = 0.0f;
 	vertices[1] = 0.0f;
@@ -18,7 +18,7 @@ void graphics_RendererInit(MemoryArena* arena)
 	vertices[9] = 1.0f;
 	vertices[10] = 0.0f;
 	vertices[11] = 0.0f;
-	graphics_VaoAddFloatBuffer(&quadVao, 0, 2, vertices, 12, TRUE);
+	graphics_vao_floatbuffer_add(&quadVao, 0, 2, vertices, 12, VAO_Options_IsPositions);
 
 	float* uvCoordinates = memory_AllocateArray(arena, float, 12);
 	uvCoordinates[0] = 0.0f;
@@ -33,20 +33,21 @@ void graphics_RendererInit(MemoryArena* arena)
 	uvCoordinates[9] = 1.0f;
 	uvCoordinates[10] = 0.0f;
 	uvCoordinates[11] = 0.0f;
-	graphics_VaoAddFloatBuffer(&quadVao, 1, 2, uvCoordinates, 12, FALSE);
+	graphics_vao_floatbuffer_add(&quadVao, 1, 2, uvCoordinates, 12, VAO_Options_Empty);
 }
 
-VertexArrayObject graphics_VaoCreate()
+VertexArrayObject graphics_vao_create()
 {
 	VertexArrayObject vao;
 	GLCall(glGenVertexArrays(1, &vao.vertexArrayId));
+	vao.has_indices = FALSE;
 	return vao;
 }
 
 
 VertexArrayObject graphics_vao_quad_create()
 {
-	VertexArrayObject vao = graphics_VaoCreate();
+	VertexArrayObject vao = graphics_vao_create();
 	float vertices[12];
 	vertices[0] = 0.0f;
 	vertices[1] = 0.0f;
@@ -60,20 +61,28 @@ VertexArrayObject graphics_vao_quad_create()
 	vertices[9] = 1.0f;
 	vertices[10] = 0.0f;
 	vertices[11] = 0.0f;
-	graphics_VaoAddFloatBuffer(&vao, 0, 2, &vertices[0], 12, TRUE);
+	graphics_vao_floatbuffer_add(&vao, 0, 2, &vertices[0], 12, VAO_Options_IsPositions);
 	return vao;
 }
 
-void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, u32 isPositions)
+void graphics_vao_floatbuffer_add(VertexArrayObject* vao, u32 index, u32 elementsPerEntry, float* values, u32 valueCount, VAO_Options options)
 {
 	GLClearErrors();
 
 	glBindVertexArray(vao->vertexArrayId);
 	glGenBuffers(1, &vao->vertexBufferId[index]);
 	glBindBuffer(GL_ARRAY_BUFFER, vao->vertexBufferId[index]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * valueCount, values, GL_STATIC_DRAW);
 
-	if (isPositions)
+	if (options & VAO_Options_IsDynamic)
+	{
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * valueCount, values, GL_DYNAMIC_DRAW);
+	}
+	else
+	{
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * valueCount, values, GL_STATIC_DRAW);
+	}
+
+	if (options & VAO_Options_IsPositions)
 	{
 		vao->verticesCount = valueCount / elementsPerEntry;
 	}
@@ -84,10 +93,50 @@ void graphics_VaoAddFloatBuffer(VertexArrayObject* vao, u32 index, u32 elementsP
 	GLAssertNoErrors("Vao add float buffer");
 }
 
+void graphics_vao_elementindices_add(VertexArrayObject* vao, u32* values, u32 indices_count, VAO_Options options)
+{
+	GLClearErrors();
+
+	glBindVertexArray(vao->vertexArrayId);
+	glGenBuffers(1, &vao->element_buffer_id);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vao->element_buffer_id);
+
+	if (options & VAO_Options_IsDynamic)
+	{
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * indices_count, values, GL_DYNAMIC_DRAW);
+	}
+	else
+	{
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * indices_count, values, GL_STATIC_DRAW);
+	}
+
+	vao->verticesCount = indices_count;
+
+	GLAssertNoErrors("Vao add element indicies buffer");
+}
+
+void graphics_vao_buffer_subdata_floats(VertexArrayObject* vao, u32 index, f32* values, u32 count)
+{
+	GLClearErrors();
+
+	glBindVertexArray(vao->vertexArrayId);
+	glBindBuffer(GL_ARRAY_BUFFER, vao->vertexBufferId[index]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(f32), values);
+
+	GLAssertNoErrors("Vao buffer sub data floats");
+}
+
 void graphics_VaoRender(VertexArrayObject* vao)
 {
 	GLCall(glBindVertexArray(vao->vertexArrayId));
-	GLCall(glDrawArrays(GL_TRIANGLES, 0, vao->verticesCount));
+	if (vao->has_indices)
+	{
+		GLCall(glDrawElements(GL_TRIANGLES, vao->verticesCount, GL_UNSIGNED_INT, 0));
+	}
+	else
+	{
+		GLCall(glDrawArrays(GL_TRIANGLES, 0, vao->verticesCount));
+	}
 }
 
 

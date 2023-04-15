@@ -256,6 +256,8 @@
     <None Include="res\fonts\candara.fnt" />
     <None Include="res\shaders\color.frag" />
     <None Include="res\shaders\color.vert" />
+    <None Include="res\shaders\text.frag" />
+    <None Include="res\shaders\text.vert" />
     <None Include="res\shaders\ui.frag" />
     <None Include="res\shaders\ui.vert" />
   </ItemGroup>

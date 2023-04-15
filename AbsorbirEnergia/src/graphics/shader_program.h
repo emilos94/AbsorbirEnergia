@@ -14,6 +14,7 @@ void graphics_ShaderUnbind();
 void graphics_ShaderDestroy(ShaderProgram shaderProgram);
 
 void graphics_ShaderSetUniformF(ShaderProgram shaderProgram, char* name, float value);
+void graphics_shader_uniform_vec2f(ShaderProgram shaderProgram, char* name, Vec2f* vec);
 void graphics_shader_uniform_vec3f(ShaderProgram shaderProgram, char* name, Vec3f* vec);
 void graphics_shader_uniform_3f(ShaderProgram shaderProgram, char* name, float x, float y, float z);
 void graphics_ShaderSetUniformMat4(ShaderProgram shaderProgram, char* name, Mat4f* mat4);

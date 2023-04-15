@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define u32 uint32_t
+typedef uint32_t u32;
 #define s32 int32_t
 #define f32 float
 #define f64 double

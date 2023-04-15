@@ -197,5 +197,11 @@
     <None Include="res\fonts\candara.fnt">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\shaders\text.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\shaders\text.vert">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -7,7 +7,19 @@ static u32 arena_start_offset = 0;
 static ShaderProgram shader_program_ui;
 static VertexArrayObject vao_quad;
 
-void ui_initialize(Mat4f* projection_matrix)
+
+// Text render state
+static ShaderProgram shader_program_text;
+static float* buffer_text_positions;
+static float* buffer_text_uvs;
+static u32* buffer_text_element_indicies;
+static u32 buffer_size;
+static u32 buffers_current_quad_count;
+VertexArrayObject vao_text;
+
+static UI_Text_State ui_text_state;
+
+void ui_initialize(Mat4f* projection_matrix, UI_Font* font_default)
 {
 	if (initialized) return;
 
@@ -17,12 +29,53 @@ void ui_initialize(Mat4f* projection_matrix)
 	graphics_ShaderBind(shader_program_ui);
 	graphics_ShaderSetUniformMat4(shader_program_ui, "projection_matrix", projection_matrix);
 	graphics_ShaderUnbind();
+
+	shader_program_text = graphics_ShaderLoad(arena_ui, "res/shaders/text.vert", "res/shaders/text.frag");
+	graphics_ShaderBind(shader_program_text);
+	graphics_ShaderSetUniformMat4(shader_program_text, "projection_matrix", projection_matrix);
+	graphics_ShaderUnbind();
+
 	memory_MemoryArenaReset(arena_ui);
+	ui_text_state.font_active = font_default;
 
 	render_state = memory_struct_zero_allocate(arena_ui, UI_Render_State);
 	render_state->widget_first = 0;
-	arena_start_offset = arena_ui->offset;
+	
 	vao_quad = graphics_vao_quad_create();
+
+	u32 floats_per_position = 2;
+	u32 floats_per_quad = 8;
+	u32 positions_per_quad = 4;
+	u32 buffer_quad_capacity = 50;
+	buffer_size = buffer_quad_capacity * floats_per_quad;
+	buffer_text_positions = memory_AllocateArray(arena_ui, f32, buffer_size);
+	buffer_text_uvs = memory_AllocateArray(arena_ui, f32, buffer_size);
+	buffers_current_quad_count = 0;
+
+	u32 indices_per_quad = 6;
+	u32 indices_count = indices_per_quad * buffer_quad_capacity;
+	buffer_text_element_indicies = memory_AllocateArray(arena_ui, u32, indices_count);
+
+	arena_start_offset = arena_ui->offset;
+
+	// setup layout for quad buffer indices
+	u32 vertex_index = 0;
+	for (u32 i = 0; i < indices_count; i += indices_per_quad)
+	{
+		buffer_text_element_indicies[i] = vertex_index;			// 0
+		buffer_text_element_indicies[i + 1] = vertex_index + 1; // 1
+		buffer_text_element_indicies[i + 2] = vertex_index + 2; // 2
+		buffer_text_element_indicies[i + 3] = vertex_index + 2;	// 2
+		buffer_text_element_indicies[i + 4] = vertex_index + 3;	// 3
+		buffer_text_element_indicies[i + 5] = vertex_index;		// 0
+
+		vertex_index += positions_per_quad;
+	}
+
+	vao_text = graphics_vao_create();
+	graphics_vao_floatbuffer_add(&vao_text, 0, 2, buffer_text_positions, buffer_size, VAO_Options_IsDynamic | VAO_Options_IsPositions);
+	graphics_vao_floatbuffer_add(&vao_text, 1, 2, buffer_text_uvs, buffer_size, VAO_Options_IsDynamic);
+	graphics_vao_elementindices_add(&vao_text, buffer_text_element_indicies, indices_count, VAO_Options_Empty);
 }
 
 UI_Info* ui_button(f32 x, f32 y, f32 width, f32 height)
@@ -100,15 +153,15 @@ void ui_render_destroy()
 u32 ui_font_parse_property_u32(FileResult* file_result, u32 file_offset, char* property_name, u32 property_name_length, u32* destination)
 {
 	u32 new_offset = mystr_char_array_find_indexof(file_result->text + file_offset, file_result->length - file_offset, property_name, property_name_length);
-	new_offset += property_name_length;
+	new_offset += property_name_length + file_offset;
 	ASSERT(mystr_u32_parse(file_result->text + new_offset, destination));
 	return new_offset;
 }
 
-u32 ui_font_parse_property_u32(FileResult* file_result, u32 file_offset, char* property_name, u32 property_name_length, s32* destination)
+u32 ui_font_parse_property_s32(FileResult* file_result, u32 file_offset, char* property_name, u32 property_name_length, s32* destination)
 {
 	u32 new_offset = mystr_char_array_find_indexof(file_result->text + file_offset, file_result->length - file_offset, property_name, property_name_length);
-	new_offset += property_name_length;
+	new_offset += property_name_length + file_offset;
 	ASSERT(mystr_s32_parse(file_result->text + new_offset, destination));
 	return new_offset;
 }
@@ -125,12 +178,13 @@ UI_Font* ui_text_font_load(MemoryArena* arena_temp, MemoryArena* arena_permanent
 	text_index = ui_font_parse_property_u32(result, text_index, ",", 1, &font->padding_right);
 	text_index = ui_font_parse_property_u32(result, text_index, ",", 1, &font->padding_bottom);
 	text_index = ui_font_parse_property_u32(result, text_index, "lineHeight=", 11, &font->line_height);
-	text_index = ui_font_parse_property_u32(result, text_index, "lineHeight=", 11, &font->line_height);
+	text_index = ui_font_parse_property_s32(result, text_index, "base=", 5, &font->base);
 	text_index = ui_font_parse_property_u32(result, text_index, "scaleW=", 7, &font->image_width);
 	text_index = ui_font_parse_property_u32(result, text_index, "scaleH=", 7, &font->image_height);
 	text_index = ui_font_parse_property_u32(result, text_index, "chars count=", 12, &font->character_count);
 
 	font->character_infos = memory_AllocateArray(arena_permanent, UI_Characterinfo, font->character_count);
+	font->character_info_id_to_index = memory_AllocateArray(arena_permanent, u32, font->character_count);
 
 	for (u32 i = 0; i < font->character_count; i++)
 	{
@@ -138,24 +192,161 @@ UI_Font* ui_text_font_load(MemoryArena* arena_temp, MemoryArena* arena_permanent
 		u32 character_id = 0;
 		text_index = ui_font_parse_property_u32(result, text_index, "char id=", 8, &character_id);
 
-		UI_Characterinfo* info = font->character_infos + (i % font->character_count);
+		// todo: figure out lookup. create u32-u32 map? need to go from 'a' -> char info
+		UI_Characterinfo* info = font->character_infos + i;// *sizeof(UI_Characterinfo);
 		info->c = (char)character_id;
 
 		text_index = ui_font_parse_property_u32(result, text_index, "x=", 2, &info->x);
 		text_index = ui_font_parse_property_u32(result, text_index, "y=", 2, &info->y);
 		text_index = ui_font_parse_property_u32(result, text_index, "width=", 6, &info->width);
-		text_index = ui_font_parse_property_u32(result, text_index, "height=", 7, &info->height);
+		text_index = ui_font_parse_property_s32(result, text_index, "height=", 7, &info->height);
 
 		text_index = ui_font_parse_property_s32(result, text_index, "xoffset=", 8, &info->x_offset);
-		text_index = ui_font_parse_property_s32(result, text_index, "xoffset=", 8, &info->y_offset);
+		text_index = ui_font_parse_property_s32(result, text_index, "yoffset=", 8, &info->y_offset);
 
 		text_index = ui_font_parse_property_u32(result, text_index, "xadvance=", 9, &info->x_advance);
-
+		
 		info->uv_x_min = (f32)info->x / (f32)font->image_width;
-		info->uv_y_min = (f32)info->y / (f32)font->image_height;
+		info->uv_y_min = 1.0f - ((f32)info->y / (f32)font->image_height);
 		info->uv_x_max = (f32)(info->x + info->width) / (f32)font->image_width;
-		info->uv_x_max = (f32)(info->y + info->height) / (f32)font->image_height;
+		info->uv_y_max = 1.0f - ((f32)(info->y + info->height) / (f32)font->image_height);
 	}
 
+	font->texture = graphics_TextureLoad(arena_temp, path_texture);
+
 	return font;
+}
+
+
+UI_Text* ui_text_create(Mystr* text, UI_Font* font, f32 x, f32 y, f32 font_size, f32 line_width)
+{
+	u32 floats_per_quad = 8;
+	u32 uv_position_offset = buffers_current_quad_count * floats_per_quad;
+	u32 quads_added = 0;
+
+	f32* positions = buffer_text_positions + uv_position_offset;
+	f32* uv_coordinates = buffer_text_uvs + uv_position_offset;
+
+	f32 cursor_x = x;
+	f32 cursor_y = y + font_size * (f32)font->base;
+	f32 word_width = 0.0f;
+	u32 word_start_index = 0;
+	f32 text_widest_line_width = 0.0f;
+	for (u32 i = 0; i < text->length; i++)
+	{
+		// Flush buffer if it is full
+		if (i * floats_per_quad + uv_position_offset > buffer_size)
+		{
+			ui_text_flush();
+			positions = buffer_text_positions;
+			uv_coordinates = buffer_text_uvs;
+			uv_position_offset = 0;
+			quads_added = 0;
+		}
+
+		char c = text->text[i];
+		UI_Characterinfo* character_info = ui_text_font_get_info(font, c);
+
+		f32 x_left = cursor_x + character_info->x_offset * font_size;
+		f32 x_right = x_left + character_info->width * font_size;
+		// todo: figure this out!
+		f32 y_top = cursor_y - font_size * (f32)(character_info->y_offset);
+		f32 y_bottom = y_top - font_size * (f32)(character_info->height);
+		//f32 y_top = y_bottom + (f32)character_info->height * font_size;
+
+		u32 positions_index_local = 0;
+		u32 uvs_index_local = 0;
+		positions[uv_position_offset + positions_index_local++] = x_left;
+		positions[uv_position_offset + positions_index_local++] = y_bottom;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_x_min;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_y_max;
+
+		positions[uv_position_offset + positions_index_local++] = x_left;
+		positions[uv_position_offset + positions_index_local++] = y_top;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_x_min;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_y_min;
+
+		positions[uv_position_offset + positions_index_local++] = x_right;
+		positions[uv_position_offset + positions_index_local++] = y_top;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_x_max;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_y_min;
+
+		positions[uv_position_offset + positions_index_local++] = x_right;
+		positions[uv_position_offset + positions_index_local++] = y_bottom;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_x_max;
+		uv_coordinates[uv_position_offset + uvs_index_local++] = character_info->uv_y_max;
+
+		uv_position_offset += floats_per_quad;
+		quads_added++;
+
+		f32 x_advance = character_info->x_advance * font_size;
+		cursor_x += x_advance;
+		word_width += x_advance;
+
+		b8 word_end = c == ' ' || i == text->length - 1;
+		if (word_end)
+		{
+			if (cursor_x - x > line_width)
+			{
+				// Move word down if it exceeds line width
+				// todo: fix this!
+				f32 line_height = font->line_height * font_size;
+				for (u32 word_index = word_start_index; word_index < i; word_index++)
+				{
+					positions[word_index + 1] += line_height;
+					positions[word_index + 3] += line_height;
+					positions[word_index + 5] += line_height;
+					positions[word_index + 7] += line_height;
+				}
+				cursor_y += line_height;
+				cursor_x = 0.0f;
+			}
+			else
+			{
+				text_widest_line_width += word_width;
+			}
+
+			/*if (text_widest_line_width > ui_text->width)
+			{
+				ui_text->width = text_widest_line_width;
+			}*/
+
+			word_width = 0.0f;
+			word_start_index = i + 1;
+		}
+	}
+
+	buffers_current_quad_count += quads_added;
+
+	return 0;
+}
+
+void ui_text_flush(void)
+{
+	graphics_ShaderBind(shader_program_text);
+	graphics_TextureBind(&ui_text_state.font_active->texture);
+	graphics_vao_buffer_subdata_floats(&vao_text, 0, buffer_text_positions, buffers_current_quad_count * 8);
+	graphics_vao_buffer_subdata_floats(&vao_text, 1, buffer_text_uvs, buffers_current_quad_count * 8);
+	GLCall(glBindVertexArray(vao_text.vertexArrayId));
+	GLCall(glDrawElements(GL_TRIANGLES, buffers_current_quad_count * 6, GL_UNSIGNED_INT, 0));
+	buffers_current_quad_count = 0;
+}
+
+UI_Characterinfo* ui_text_font_get_info(UI_Font* font, char c)
+{
+	UI_Characterinfo* info_default = 0;
+	for (u32 i = 0; i < font->character_count; i++)
+	{
+		UI_Characterinfo* info = font->character_infos + i;
+		if (info->c == c)
+		{
+			return info;
+		}
+		else if (info->c == '?')
+		{
+			info_default = info;
+		}
+	}
+
+	return info_default;
 }

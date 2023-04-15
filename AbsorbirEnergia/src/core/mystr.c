@@ -122,7 +122,12 @@ b8 mystr_s32_parse(char* char_arr, s32* destination)
 
 	u32 tens_modifier = 1;
 	s32 result = 0;
-	for (s32 i = index; i >= 0; i--)
+	s32 lower_index = 0;
+	if (is_negative) 
+	{
+		lower_index = 1;
+	}
+	for (s32 i = index; i >= lower_index; i--)
 	{
 		u32 char_number_value = (u32)char_arr[i] - ascii_zero;
 		result += tens_modifier * char_number_value;

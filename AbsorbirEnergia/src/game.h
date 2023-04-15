@@ -35,6 +35,8 @@ struct GameState
 {
 	u32 entity_active_count, entity_free_count;
 
+	MemoryArena* arena_frame;
+
 	Entity* entity_first_free;
 	Entity* entity_first_active;
 	Entity* entity_last_active;

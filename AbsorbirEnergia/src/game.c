@@ -3,6 +3,7 @@
 GameState* game_Init(MemoryArena* arena, Assets* assets)
 {
 	GameState* gameState = memory_struct_zero_allocate(arena, GameState);
+	gameState->arena_frame = memory_MemoryArenaCreate(memory_Megabytes(1));
 	gameState->entity_active_count = 0;
 	gameState->entity_free_count = 0;
 
@@ -213,6 +214,9 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 		f32 button_width = 80.0f;
 		f32 center_x = graphics_window_render_width() / 2.0f - button_width / 2.0f;
 		UI_Info* button_play = ui_button(center_x, 120.0f, button_width, 32.0f);
+
+		Mystr* str = mystr_create(game_state->arena_frame, "play", 4);
+		UI_Text* text = ui_text_create(str, assets->font_candara, center_x + button_width * 0.25f, 120.0f + 10.0f, 0.2f, button_width);
 		if (button_play->hot)
 		{
 			math_vec3f_set(1.0f, 0.0f, 0.0f, &button_play->widget->color);
@@ -227,6 +231,8 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			game_state->main_menu_on = FALSE;
 		}
 	}
+
+	memory_MemoryArenaReset(game_state->arena_frame);
 }
 
 
