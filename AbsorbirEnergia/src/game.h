@@ -11,6 +11,10 @@
 #include "math/math_util.h"
 #include "ui/ui.h"
 
+// rand
+#include <stdlib.h>
+#include <time.h>
+
 #define ENTITY_MAX 100
 #define DEBUG_RENDER_COLLISION_BOXES 0
 
@@ -31,6 +35,12 @@ struct PlayerShootState
 };
 typedef struct PlayerShootState PlayerShootState;
 
+enum GameStateMode {
+	GameStateMode_MainMenu,
+	GameStateMode_Playing,
+	GameStateMode_GameOver
+};
+
 struct GameState
 {
 	u32 entity_active_count, entity_free_count;
@@ -44,17 +54,22 @@ struct GameState
 	Animation* first_free_animation;
 
 	u32 enemy_alive_count;
+	f32 enemy_wave_cleared_time;
+	f32 enemy_wave_respawn_cooldown;
+	f32 enemy_spawn_y_current_offset;
+	u32 enemy_wave_level;
 
-	float secondsSinceStart;
+	f32 secondsSinceStart;
 
 	Entity* player;
 	Entity* player_shield;
+	u32 player_score;
 	Entity* entity_background;
 
 	PlayerShieldState playerShieldState;
 	PlayerShootState playerShootState;
 
-	b8 main_menu_on;
+	u32 game_state_mode;
 };
 typedef struct GameState GameState;
 
@@ -71,7 +86,7 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position);
 void _game_entity_free(GameState* gameState, Entity* entity);
 
-void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 count);
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count);
 
 void _game_playerShieldUpdate(GameState* gameState);
 void _game_animation_update(Entity* entity, float delta);

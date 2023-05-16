@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 typedef uint32_t u32;
-#define s32 int32_t
-#define f32 float
+typedef int32_t s32;
+typedef float f32;
 #define f64 double
 #define b32 unsigned int
 #define b8 uint8_t

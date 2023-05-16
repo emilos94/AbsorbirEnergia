@@ -1,11 +1,67 @@
 #include "mystr.h"
 
-Mystr* mystr_create(MemoryArena* arena, char* text, u32 length)
+Mystr* mystr_create(MemoryArena* arena, char* text)
 {
 	Mystr* str = memory_struct_zero_allocate(arena, Mystr);
+	u32 length = 0;
+	while (text[length++] != '\0');
+	length -= 1;
+
 	str->text = memory_MemoryArenaCopyBuffer(arena, text, length);
 	str->length = length;
 	return str;
+}
+
+Mystr* mystr_u32_to_mystr(MemoryArena* arena, u32 number)
+{
+	if (number == 0) {
+		return mystr_create(arena, "0");
+	}
+
+	u32 divider = 1;
+	for (;divider <= number; divider *= 10);
+
+	char text[20];
+	u32 text_index = 0;
+	// 347
+	// divider = 1000
+	do {
+		divider /= 10;
+		if (divider == 0) break;
+
+		u32 digit = number / divider; // 3
+		number -= digit * divider;
+		char c = '0' + (char)digit;
+		text[text_index++] = c;
+	} while (divider);
+
+	Mystr* str = memory_struct_zero_allocate(arena, Mystr);
+	str->length = text_index;
+	str->text = memory_AllocateArray(arena, char, str->length);
+
+	for (u32 i = 0; i < text_index; i++) {
+		str->text[i] = text[i];
+	}
+
+	return str;
+}
+
+
+Mystr* mystr_concat(MemoryArena* arena, Mystr* left, Mystr* right)
+{
+	Mystr* result = memory_struct_zero_allocate(arena, Mystr);
+	result->length = left->length + right->length;
+	result->text = memory_AllocateArray(arena, char, result->length);
+
+	u32 i = 0;
+	for (; i < left->length; i++) {
+		result->text[i] = left->text[i];
+	}
+	for (; i < right->length; i++) {
+		result->text[i] = right->text[i];
+	}
+
+	return result;
 }
 
 b8 mystr_equals(Mystr* left, Mystr* right)

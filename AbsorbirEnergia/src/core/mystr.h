@@ -3,6 +3,7 @@
 
 #include "definitions.h"
 #include "memory_arena.h"
+#include <stdio.h>
 
 struct Mystr
 {
@@ -11,7 +12,9 @@ struct Mystr
 };
 typedef struct Mystr Mystr;
 
-Mystr* mystr_create(MemoryArena* arena, char* text, u32 length);
+Mystr* mystr_create(MemoryArena* arena, char* text);
+Mystr* mystr_u32_to_mystr(MemoryArena* arena, u32 number);
+Mystr* mystr_concat(MemoryArena* arena, Mystr* left, Mystr* right);
 b8 mystr_equals(Mystr* left, Mystr* right);
 b8 mystr_char_array_equals(char* either, char* other, u32 length);
 b8 mystr_u32_parse(char* char_arr, u32* destination);

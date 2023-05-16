@@ -5,6 +5,7 @@
 #include "../core/definitions.h"
 #include "../core/input.h"
 #include "../core/mystr.h"
+#include "../core/collision.h"
 #include "../core/file_loader.h"
 #include "../graphics/shader_program.h"
 #include "../graphics/renderer.h"
@@ -46,6 +47,12 @@ struct UI_Info
 	b8 hot;
 };
 typedef struct UI_Info UI_Info;
+
+typedef struct UiInfoSlider
+{
+	UI_Info* bar;
+	UI_Info* handle;
+} UiInfoSlider;
 
 struct UI_Theme
 {
@@ -139,15 +146,19 @@ struct UI_Text
 	Mystr* text;
 	f32 font_size;
 	f32 width;
+	f32 height;
+	Vec2f position;
 };
 typedef struct UI_Text UI_Text;
 
 void ui_initialize(Mat4f* projection_matrix, UI_Font* font_default);
 UI_Info* ui_button(f32 x, f32 y, f32 width, f32 height);
+UI_Info* ui_block(f32 x, f32 y, f32 width, f32 height, Vec3f color);
+UiInfoSlider* ui_slider(f32 x, f32 y, f32 width, f32 height, f32 bar_thickness, f32 handle_thickness, f32 initial_value, f32* result);
 void ui_render_flush(void);
 void ui_render_destroy();
 
-UI_Text* ui_text_create(Mystr* text, UI_Font* font, f32 x, f32 y, f32 font_size, f32 line_width);
+UI_Text* ui_text_create(Mystr* text, UI_Font* font, f32 x, f32 y, f32 font_size, f32 line_width, b32 center_text);
 void ui_text_flush(void);
 
 #endif

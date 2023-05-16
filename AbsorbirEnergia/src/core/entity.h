@@ -43,6 +43,12 @@ enum EntityTags
 	EntityTag_Shield = 1 << 3,
 };
 
+enum CollisionLayers {
+	CollisionLayer_Player = 1 << 0,
+	CollisionLayer_Enemy = 1 << 1,
+};
+typedef u32 CollisionLayers;
+
 struct Entity
 {
 	struct Entity* next; // to enable free list
@@ -56,6 +62,7 @@ struct Entity
 	Texture texture;
 	Motion motion;
 
+	// animation
 	SpriteSheet spriteSheet;
 	Animation* animations[3];
 	u32 animationCount;
@@ -67,11 +74,19 @@ struct Entity
 	float createdTime;
 	float timeToLive;
 
+	// enemy properties
 	Vec2f target_position;
-	float move_last_switch;
-	float move_switch_cooldown;
+	f32 move_last_switch;
+	f32 move_switch_cooldown;
+	f32 shoot_cooldown_min;
+	f32 shoot_last_fire;
+	f32 shoot_change_to_shoot;
 
+	// collision
 	CollisionBox collision_box;
+	CollisionLayers collision_layers;
+
+	u32 health;
 };
 typedef struct Entity Entity;
 

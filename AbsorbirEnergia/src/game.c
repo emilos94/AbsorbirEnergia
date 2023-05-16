@@ -1,5 +1,7 @@
 #include "game.h"
 
+#define PLAYER_START_HEALTH 3
+
 GameState* game_Init(MemoryArena* arena, Assets* assets)
 {
 	GameState* gameState = memory_struct_zero_allocate(arena, GameState);
@@ -11,28 +13,35 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	gameState->entity_first_free = 0;
 	gameState->entity_last_active = 0;
 	gameState->first_free_animation = 0;
+	gameState->enemy_wave_level = 1;
+
+	gameState->game_state_mode = GameStateMode_MainMenu;
 
 	Entity* background = _game_entity_textured_create(arena, gameState, math_vec2f(0.0f, 0.0f), math_vec2f(320.0f, 180.0f), assets->texture_background);
+	
+	// #init player
 	Entity* player = _game_entity_textured_create(arena, gameState, math_vec2f(0.0f, 0.0f), math_vec2f(32.0f, 32.0f), assets->texture_player);
 	player->entityTags = EntityTag_Player;
-
-	// motion
 	player->motion.acceleration = math_vec2f(600.0f, 5.0f);
 	player->motion.friction = 0.9f;
 	player->motion.velocity = math_vec2f(0.0f, 0.0f);
 	player->motion.direction = math_vec2f(0.0f, 0.0f);
 	player->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider;
-
+	player->collision_layers = CollisionLayer_Player;
 	player->collision_box.bottom_left = math_vec2f(4.0f, 4.0f);
 	player->collision_box.top_right = math_vec2f(28.0f, 28.0f);
+	player->health = PLAYER_START_HEALTH;
+
 	gameState->player = player;
 	gameState->entity_background = background;
+	gameState->player_score = 0;
 
-	// player shield
+	// #init player shield
 	Entity* shield = _game_entity_create(arena, gameState, player->transform.position, player->transform.scale);
 	shield->entityFlags |= EntityFlag_HasAnimations | EntityFlag_HasCollider;
 	shield->entityTags = EntityTag_Shield;
 	shield->spriteSheet = graphics_spritesheet_create(assets->texture_electric_shield, 9);
+	shield->collision_layers = CollisionLayer_Player;
 
 	shield->animations[0] = _game_graphics_animation_allocate(gameState, arena);
 	graphics_animation_set(shield->animations[0], 0, 5, FALSE, 1.0f);
@@ -59,15 +68,22 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	playerShootState->cooldown = 0.7f;
 	playerShootState->lastUsed = 0.0f;
 
-	_game_enemy_wave_create(gameState, arena, assets, 4);
+	gameState->enemy_wave_cleared_time = time_now_seconds();
+	gameState->enemy_wave_respawn_cooldown = 1.0f;
+	gameState->game_state_mode = GameStateMode_MainMenu;
 
-	gameState->main_menu_on = TRUE;
+	time_t t;
+	srand((s32)time(&t));
 
 	return gameState;
 }
 
 void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
 {
+	if (game_state->game_state_mode != GameStateMode_Playing) {
+		return;
+	}
+
 	Entity* player = game_state->player;
 	float dx = 0.0f;
 	if (input_IsKeyPressed(GLFW_KEY_A))
@@ -118,7 +134,7 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 {
 	entity_loopback(game_state->entity_last_active, e)
 	{
-		if (game_state->main_menu_on)
+		if (game_state->game_state_mode == GameStateMode_MainMenu)
 		{
 			break;
 		}
@@ -192,6 +208,27 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 				}
 			}
 		}
+
+		if (e->entityTags & EntityTag_Enemy) {
+			// lerp onto screen
+			f32 offset_difference = math_lerp(0.0f, game_state->enemy_spawn_y_current_offset, 0.2f) * delta;
+			game_state->enemy_spawn_y_current_offset -= offset_difference;
+			game_state->enemy_spawn_y_current_offset = math_MaxF(game_state->enemy_spawn_y_current_offset, 0.0f);
+
+			e->transform.position.y -= offset_difference;
+
+			// shoot
+			if (time_now_seconds() >= e->shoot_last_fire + e->shoot_cooldown_min) {
+				b8 will_shoot = e->shoot_change_to_shoot >= math_rand();
+				if (will_shoot) {
+					e->shoot_last_fire = time_now_seconds();
+					Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
+					bullet->motion.direction.y *= -1;
+					bullet->collision_layers = CollisionLayer_Player;
+					bullet->transform.rotation = 180.0f;
+				}
+			}
+		}
 	}
 
 	// clamp player position
@@ -201,6 +238,65 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 
 	_game_playerShieldUpdate(game_state);
 
+	// in game ui
+	if (game_state->game_state_mode == GameStateMode_Playing) {
+		f32 score_label_x = 10.0f;
+		Mystr* score = mystr_create(game_state->arena_frame, "score: ");
+		UI_Text* text = ui_text_create(
+			score,
+			assets->font_candara,
+			score_label_x,
+			graphics_window_render_height() - 10.0f,
+			0.1f,
+			graphics_window_render_width(),
+			FALSE
+		);
+		score_label_x += text->width;
+
+		Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
+		ui_text_create(
+			score_number_str,
+			assets->font_candara,
+			score_label_x,
+			graphics_window_render_height() - 10.0f,
+			0.1f,
+			graphics_window_render_width(),
+			FALSE
+		);
+
+		f32 level_label_x = graphics_window_render_width() - 40.0f;
+		Mystr* level_label = mystr_create(game_state->arena_frame, "level: ");
+		UI_Text* level_label_text = ui_text_create(
+			level_label,
+			assets->font_candara,
+			level_label_x,
+			graphics_window_render_height() - 10.0f,
+			0.1f,
+			graphics_window_render_width(),
+			FALSE
+		);
+		level_label_x += level_label_text->width;
+
+		Mystr* level_number = mystr_u32_to_mystr(game_state->arena_frame, game_state->enemy_wave_level);
+		ui_text_create(
+			level_number,
+			assets->font_candara,
+			level_label_x,
+			graphics_window_render_height() - 10.0f,
+			0.1f,
+			graphics_window_render_width(),
+			FALSE
+		);
+
+		f32 health_block_width = 15.0f;
+		f32 health_block_x = graphics_window_render_width() - health_block_width - 2.0f;
+		for (u32 i = 0; i < game_state->player->health; i++) {
+			ui_block(health_block_x, 5.0f, health_block_width, 6.0f, math_vec3f(0.2f, 1.0f, 0.2f));
+			health_block_x -= health_block_width + 2.0f;
+		}
+	}
+
+
 	entity_loopback(game_state->entity_last_active, entity)
 	{
 		if (entity->entityFlags & EntityFlag_MarkedForDestruction)
@@ -209,26 +305,96 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 		}
 	}
 
-	if (game_state->main_menu_on)
+	// #ui main menu
+	if (game_state->game_state_mode == GameStateMode_MainMenu)
 	{
-		f32 button_width = 80.0f;
-		f32 center_x = graphics_window_render_width() / 2.0f - button_width / 2.0f;
-		UI_Info* button_play = ui_button(center_x, 120.0f, button_width, 32.0f);
+		Mystr* str = mystr_create(game_state->arena_frame, "Press space to begin!");
+		UI_Text* text = ui_text_create(
+			str,
+			assets->font_candara,
+			0.0f, 
+			120.0f, 
+			0.3f,
+			graphics_window_render_width(), 
+			TRUE
+		);
 
-		Mystr* str = mystr_create(game_state->arena_frame, "play", 4);
-		UI_Text* text = ui_text_create(str, assets->font_candara, center_x + button_width * 0.25f, 120.0f + 10.0f, 0.2f, button_width);
-		if (button_play->hot)
-		{
-			math_vec3f_set(1.0f, 0.0f, 0.0f, &button_play->widget->color);
+		if (input_IsKeyPressed(GLFW_KEY_SPACE)) {
+			game_state->game_state_mode = GameStateMode_Playing;
 		}
-		else
-		{
-			math_vec3f_set(1.0f, 0.0f, 1.0f, &button_play->widget->color);
-		}
+	}
 
-		if (button_play->active)
-		{
-			game_state->main_menu_on = FALSE;
+	// #ui game over
+	if (game_state->game_state_mode == GameStateMode_GameOver) {
+		f32 y_placement = 120.0f;
+
+		Mystr* str = mystr_create(game_state->arena_frame, "Game over!");
+		UI_Text* text_game_over = ui_text_create(
+			str,
+			assets->font_candara,
+			0.0f,
+			y_placement,
+			0.3f,
+			graphics_window_render_width(),
+			TRUE
+		);
+
+		y_placement -= text_game_over->height;
+		y_placement -= 2.0f;
+
+		Mystr* str_score = mystr_create(game_state->arena_frame, "Final score: ");
+		Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
+		Mystr* score_str_concat = mystr_concat(game_state->arena_frame, str_score, score_number_str);
+		UI_Text* final_score_text = ui_text_create(
+			score_str_concat,
+			assets->font_candara,
+			0.0f,
+			y_placement,
+			0.1f,
+			graphics_window_render_width(),
+			TRUE
+		);
+
+		y_placement -= final_score_text->height;
+		y_placement -= 2.0f;
+
+		Mystr* str_try_again = mystr_create(game_state->arena_frame, "Press space to try again!");
+		UI_Text* text = ui_text_create(
+			str_try_again,
+			assets->font_candara,
+			0.0f,
+			y_placement,
+			0.1f,
+			graphics_window_render_width(),
+			TRUE
+		);
+
+		if (input_IsKeyJustPressed(GLFW_KEY_SPACE)) {
+			game_state->game_state_mode = GameStateMode_Playing;
+			game_state->enemy_wave_level = 1;
+			game_state->player_score = 0;
+			game_state->enemy_alive_count = 0;
+		}
+	}
+
+	// Wave respawn
+	{
+		if (game_state->enemy_alive_count == 0 && 
+			time_now_seconds() - game_state->enemy_wave_cleared_time >= game_state->enemy_wave_respawn_cooldown) {
+			switch (game_state->enemy_wave_level) {
+			case 1:
+				_game_enemy_wave_create(game_state, arena, assets, 3, 1);
+				break;
+			case 2:
+				_game_enemy_wave_create(game_state, arena, assets, 3, 2);
+				break;
+			case 3:
+				_game_enemy_wave_create(game_state, arena, assets, 4, 2);
+				break;
+			default:
+				_game_enemy_wave_create(game_state, arena, assets, 4, 3);
+				break;
+			}
 		}
 	}
 
@@ -238,7 +404,7 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 
 void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProgram shader_quad_colored)
 {
-	if (game_state->main_menu_on)
+	if (game_state->game_state_mode == GameStateMode_MainMenu)
 	{
 		graphics_entity_render(shader_default, game_state->entity_background);
 		return;
@@ -360,6 +526,7 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 	bullet->motion.direction = math_vec2f(0.0f, 1.0f);
 	bullet->motion.acceleration = math_vec2f(0.0f, 1100.0f);
 	bullet->motion.friction = 0.99f;
+	bullet->collision_layers = CollisionLayer_Enemy;
 
 	bullet->createdTime = time_now_seconds();
 	bullet->timeToLive = 3.0f;
@@ -370,6 +537,7 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 	return bullet;
 }
 
+// #init explosion
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position)
 {
 	Entity* explosion = _game_entity_allocate(arena, gameState);
@@ -422,20 +590,42 @@ void _game_entity_free(GameState* game_state, Entity* entity)
 	}
 }
 
-void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* assets, Entity* either, Entity* other)
-{
-	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Enemy)
-	{
+// #collision
+void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* assets, Entity* either, Entity* other) {
+	b8 on_same_collision_layer = either->collision_layers & other->collision_layers;
+	if (!on_same_collision_layer) return;
+
+	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Enemy) {
 		_game_entity_explosion_create(gameState, arena, assets, other->transform.position);
 
 		either->entityFlags |= EntityFlag_MarkedForDestruction;
 		other->entityFlags |= EntityFlag_MarkedForDestruction;
 		gameState->enemy_alive_count--;
+		gameState->player_score += 100;
 
 		if (gameState->enemy_alive_count == 0)
 		{
-			_game_enemy_wave_create(gameState, arena, assets, 4);
+			gameState->enemy_wave_cleared_time = time_now_seconds();
+			gameState->enemy_wave_level++;
 		}
+	}
+
+	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Player) {
+		Entity* player = other;
+		player->health--;
+		if (player->health == 0) {
+			gameState->game_state_mode = GameStateMode_GameOver;
+			player->health = PLAYER_START_HEALTH;
+			player->motion.velocity.x = 0.0f;
+
+			// clear everything except background (first) and player
+			entity_loop(gameState->entity_first_active->next, entity) {
+				if (entity != gameState->player) {
+					entity->entityFlags |= EntityFlag_MarkedForDestruction;
+				}
+			}
+		}
+		either->entityFlags |= EntityFlag_MarkedForDestruction;
 	}
 }
 
@@ -468,30 +658,42 @@ Animation* _game_graphics_animation_allocate(GameState* game_state, MemoryArena*
 	return result;
 }
 
-void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 count)
+// #init enemy wave
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count)
 {
-	float enemyWidth = 32;
-	float screenWidth = 320;
-	float spacing = screenWidth / (float)count;
+	f32 enemyWidth = 32;
+	f32 screenWidth = 320;
+	f32 spacing = graphics_window_render_width() / (float)enemies_per_row;
+	f32 y_position = 140.0f;
+	f32 y_spawn_offset = 0.0f;// graphics_window_render_height();
+	f32 row_spacing = 42.0f;
+	game_state->enemy_spawn_y_current_offset = y_spawn_offset;
 
-	for (u32 i = 0; i < count; i++)
-	{
-		float xPosition = spacing * (float)(i + 1) - enemyWidth / 2.0f - spacing / 2.0f;
-		Entity* enemy = _game_entity_textured_create(arena, game_state, math_vec2f(xPosition, 140.0f), math_vec2f(32.0f, 32.0f), assets->texture_enemy);
-		enemy->isVisible = TRUE;
-		enemy->entityFlags |= EntityFlag_EnemyBaseMover | EntityFlag_HasMotion | EntityFlag_HasCollider;
-		enemy->entityTags = EntityTag_Enemy;
+	for (u32 i = 0; i < row_count; i++) {
+		for (u32 j = 0; j < enemies_per_row; j++) {
+			float xPosition = spacing * (float)(j + 1) - enemyWidth / 2.0f - spacing / 2.0f;
+			Entity* enemy = _game_entity_textured_create(arena, game_state, math_vec2f(xPosition, y_position + y_spawn_offset), math_vec2f(32.0f, 32.0f), assets->texture_enemy);
+			enemy->isVisible = TRUE;
+			enemy->entityFlags |= EntityFlag_EnemyBaseMover | EntityFlag_HasMotion | EntityFlag_HasCollider;
+			enemy->entityTags = EntityTag_Enemy;
+			enemy->collision_layers = CollisionLayer_Enemy;
 
-		enemy->move_switch_cooldown = 0.9f;
-		enemy->move_last_switch = time_now_seconds();
-		enemy->target_position = math_vec2f(xPosition - 64.0f, 140.0f);
+			enemy->move_switch_cooldown = 0.9f;
+			enemy->move_last_switch = time_now_seconds();
+			enemy->target_position = math_vec2f(xPosition - 64.0f, y_position);
 
-		enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
-		enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
-		enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
-		enemy->motion.friction = 1.0f;
-		enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
-		enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
+			enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
+			enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
+			enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
+			enemy->motion.friction = 1.0f;
+			enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+			enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
+
+			enemy->shoot_change_to_shoot = 0.01f;
+			enemy->shoot_cooldown_min = 1.0f;
+			enemy->shoot_last_fire = 0.0f;
+		}
+		y_position -= row_spacing;
 	}
-	game_state->enemy_alive_count = count;
+	game_state->enemy_alive_count = enemies_per_row * row_count;
 }
