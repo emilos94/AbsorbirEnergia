@@ -3,6 +3,7 @@
 void entity_set_zero(Entity* entity)
 {
 	entity->next = 0;
+	entity->prev = 0;
 
 	entity->entityFlags = 0;
 	entity->entityTags = 0;

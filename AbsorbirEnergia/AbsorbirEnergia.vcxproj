@@ -172,6 +172,7 @@
     <ClCompile Include="src\core\entity.c" />
     <ClCompile Include="src\core\file_loader.c" />
     <ClCompile Include="src\core\memory_arena.c" />
+    <ClCompile Include="src\core\mystr.c" />
     <ClCompile Include="src\core\stb_image.cpp" />
     <ClCompile Include="src\core\time.c" />
     <ClCompile Include="src\game.c" />
@@ -186,6 +187,8 @@
     <ClCompile Include="src\math\math_util.c" />
     <ClCompile Include="src\math\matrix4f.c" />
     <ClCompile Include="src\math\vec2f.c" />
+    <ClCompile Include="src\math\vec3f.c" />
+    <ClCompile Include="src\ui\ui.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\assets.h" />
@@ -194,6 +197,7 @@
     <ClInclude Include="src\core\entity.h" />
     <ClInclude Include="src\core\file_loader.h" />
     <ClInclude Include="src\core\memory_arena.h" />
+    <ClInclude Include="src\core\mystr.h" />
     <ClInclude Include="src\core\time.h" />
     <ClInclude Include="src\game.h" />
     <ClInclude Include="src\core\input.h" />
@@ -206,6 +210,8 @@
     <ClInclude Include="src\math\math_util.h" />
     <ClInclude Include="src\math\matrix4f.h" />
     <ClInclude Include="src\math\vec2f.h" />
+    <ClInclude Include="src\math\vec3f.h" />
+    <ClInclude Include="src\ui\ui.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="res\shaders\*.*">
@@ -237,6 +243,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\fonts\candara.png" />
     <Image Include="res\images\background.png" />
     <Image Include="res\images\base_enemy.png" />
     <Image Include="res\images\container.jpg" />
@@ -246,8 +253,13 @@
     <Image Include="res\images\player_bullet.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\fonts\candara.fnt" />
     <None Include="res\shaders\color.frag" />
     <None Include="res\shaders\color.vert" />
+    <None Include="res\shaders\text.frag" />
+    <None Include="res\shaders\text.vert" />
+    <None Include="res\shaders\ui.frag" />
+    <None Include="res\shaders\ui.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

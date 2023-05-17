@@ -31,5 +31,6 @@ void math_Mat4RotateZ(Mat4f* mat4, float angle);
 void math_Mat4Scale(Mat4f* mat4, Vec2f vec2);
 
 void math_Mat4PrettyPrint(Mat4f* mat4);
+void math_mat4_model(Vec2f position, Vec2f scale, float rotation, Mat4f* destination);
 
 #endif // !MATRIX4f_H

@@ -20,3 +20,12 @@ b32 collision_check_aabb_aabb(Vec2f either_offset, CollisionBox either, Vec2f ot
 
 	return result;
 }
+
+
+b32 collision_position_in_rect(Vec2f position, Vec2f rect_bottom_left, Vec2f rect_size)
+{
+	b8 x_overlap = position.x >= rect_bottom_left.x && position.x <= rect_bottom_left.x + rect_size.x;
+	b8 y_overlap = position.y >= rect_bottom_left.y && position.y <= rect_bottom_left.y + rect_size.y;
+
+	return x_overlap && y_overlap;
+}

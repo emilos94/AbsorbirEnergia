@@ -35,3 +35,34 @@ float math_Abs(float a)
 
 	return a;
 }
+
+float math_clamp(float min, float value, float max) {
+	if (value <= min) {
+		return min;
+	}
+	if (value >= max) {
+		return max;
+	}
+	return value;
+}
+
+float math_lerp(float a, float b, float rate) {
+	return a + (b - a) * rate;
+}
+
+float math_abs(float a) {
+	if (a < 0.0f) return a * -1.0f;
+	return a;
+}
+
+f32 math_rand() {
+	f32 result = (f32)rand() / (f32)RAND_MAX;
+	return result;
+}
+
+f32 math_rand_range(f32 min, f32 max) {
+	f32 result = (f32)rand() / (f32)RAND_MAX;
+	f32 range = math_abs(max - min);
+
+	return min + result * range;
+}

@@ -43,7 +43,7 @@ u32 _shader_LoadShaderSource(MemoryArena* arena, char* path, u32 shaderType)
 	FileResult* fileResult = file_ReadFileToCharArray(arena, path);
 
 	u32 shaderId = glCreateShader(shaderType);
-	GLCall(glShaderSource(shaderId, 1, &fileResult->fileContents, NULL));
+	GLCall(glShaderSource(shaderId, 1, &fileResult->text, NULL));
 	GLCall(glCompileShader(shaderId));
 
 	int success;
@@ -76,6 +76,18 @@ void graphics_shader_uniform_3f(ShaderProgram shaderProgram, char* name, float x
 {
 	u32 location = glGetUniformLocation(shaderProgram, name);
 	GLCall(glUniform3f(location, x, y, z));
+}
+
+void graphics_shader_uniform_vec2f(ShaderProgram shaderProgram, char* name, Vec2f* vec)
+{
+	u32 location = glGetUniformLocation(shaderProgram, name);
+	GLCall(glUniform2f(location, vec->x, vec->y));
+}
+
+void graphics_shader_uniform_vec3f(ShaderProgram shaderProgram, char* name, Vec3f* vec)
+{
+	u32 location = glGetUniformLocation(shaderProgram, name);
+	GLCall(glUniform3f(location, vec->x, vec->y, vec->z));
 }
 
 void graphics_ShaderSetUniformMat4(ShaderProgram shaderProgram, char* name, Mat4f* mat4)

@@ -2,6 +2,7 @@
 #define ASSETS_H
 
 #include "../graphics/texture.h"
+#include "../ui/ui.h"
 
 struct Assets
 {
@@ -11,10 +12,12 @@ struct Assets
 	Texture texture_player;
 	Texture texture_bullet;
 	Texture texture_explosion;
+
+	UI_Font* font_candara;
 };
 typedef struct Assets Assets;
 
-Assets* assets_load(MemoryArena* arena);
+Assets* assets_load(MemoryArena* arena_permanent, MemoryArena* arena_temp);
 void assets_cleanup(Assets* assets);
 
 #endif

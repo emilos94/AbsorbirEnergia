@@ -1,5 +1,12 @@
 #include "window.h"
 
+static f32 WINDOW_SIZE_X = 0.0f;
+static f32 WINDOW_SIZE_Y = 0.0f;
+static f32 WINDOW_SIZE_RENDER_SCALE_X = 0.0f;
+static f32 WINDOW_SIZE_RENDER_SCALE_Y = 0.0f;
+static f32 WINDOW_RENDER_WIDTH = 320.0f;
+static f32 WINDOW_RENDER_HEIGHT = 180.0f;
+
 Window graphics_WindowCreate(char* title, size_t width, size_t height) 
 {
 	glfwInit();    
@@ -14,6 +21,15 @@ Window graphics_WindowCreate(char* title, size_t width, size_t height)
 		glfwTerminate();
 		ASSERT(FALSE);
 	}
+
+	WINDOW_SIZE_X = width;
+	WINDOW_SIZE_Y = height;
+	f32 render_width = WINDOW_RENDER_WIDTH;
+	f32 render_height = WINDOW_RENDER_HEIGHT;
+
+	WINDOW_SIZE_RENDER_SCALE_X = render_width / WINDOW_SIZE_X;
+	WINDOW_SIZE_RENDER_SCALE_Y = render_height / WINDOW_SIZE_Y;
+
 	glfwMakeContextCurrent(windowHandle);
 
 	ASSERT(gladLoadGL());
@@ -22,6 +38,8 @@ Window graphics_WindowCreate(char* title, size_t width, size_t height)
 
 	glfwSetFramebufferSizeCallback(windowHandle, _graphics_WindowFramebufferSizeCallback);
 	glfwSetKeyCallback(windowHandle, _input_KeyCallback);
+	glfwSetCursorPosCallback(windowHandle, _input_mouse_callback);
+	glfwSetMouseButtonCallback(windowHandle, _input_mouse_button_callback);
 
 	Window w;
 	w.handle = windowHandle;
@@ -60,4 +78,43 @@ void graphics_WindowTerminate()
 void _graphics_WindowFramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+	WINDOW_SIZE_X = width;
+	WINDOW_SIZE_Y = height;
+
+	f32 render_width = WINDOW_RENDER_WIDTH;
+	f32 render_height = WINDOW_RENDER_HEIGHT;
+
+	WINDOW_SIZE_RENDER_SCALE_X = render_width / WINDOW_SIZE_X;
+	WINDOW_SIZE_RENDER_SCALE_Y = render_height / WINDOW_SIZE_Y;
+}
+
+
+f32 graphics_window_width()
+{
+	return WINDOW_SIZE_X;
+}
+
+f32 graphics_window_height()
+{
+	return WINDOW_SIZE_Y;
+}
+
+f32 graphics_window_render_scale_x()
+{
+	return WINDOW_SIZE_RENDER_SCALE_X;
+}
+
+f32 graphics_window_render_scale_y()
+{
+	return WINDOW_SIZE_RENDER_SCALE_Y;
+}
+
+f32 graphics_window_render_width()
+{
+	return WINDOW_RENDER_WIDTH;
+}
+
+f32 graphics_window_render_height()
+{
+	return WINDOW_RENDER_HEIGHT;
 }
