@@ -193,22 +193,20 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			entity_loopback(game_state->entity_last_active, entity_other)
 			{
 				b32 is_self = entity_other == e;
-				if (is_self)
-				{
-					entity_other = entity_other->prev;
+				if (is_self) {
 					continue;
 				}
 
 				b32 collision = entity_other->entityFlags & EntityFlag_HasCollider &&
 					collision_check_aabb_aabb(e->transform.position, e->collision_box, entity_other->transform.position, entity_other->collision_box);
 			
-				if (collision)
-				{
+				if (collision) {
 					_game_collision_handle(game_state, arena, assets, e, entity_other);
 				}
 			}
 		}
 
+		// #logic enemy
 		if (e->entityTags & EntityTag_Enemy) {
 			// lerp onto screen
 			f32 offset_difference = math_lerp(0.0f, game_state->enemy_spawn_y_current_offset, 0.2f) * delta;
@@ -220,9 +218,11 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			// shoot
 			if (time_now_seconds() >= e->shoot_last_fire + e->shoot_cooldown_min) {
 				b8 will_shoot = e->shoot_change_to_shoot >= math_rand();
+				e->shoot_last_fire = time_now_seconds();
 				if (will_shoot) {
 					e->shoot_last_fire = time_now_seconds();
 					Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
+					bullet->transform.position.x += e->transform.scale.x / 2.0f;
 					bullet->motion.direction.y *= -1;
 					bullet->collision_layers = CollisionLayer_Player;
 					bullet->transform.rotation = 180.0f;
@@ -618,9 +618,9 @@ void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* as
 			player->health = PLAYER_START_HEALTH;
 			player->motion.velocity.x = 0.0f;
 
-			// clear everything except background (first) and player
+			// clear everything except background and player
 			entity_loop(gameState->entity_first_active->next, entity) {
-				if (entity != gameState->player) {
+				if (entity != gameState->player && entity != gameState->player_shield) {
 					entity->entityFlags |= EntityFlag_MarkedForDestruction;
 				}
 			}
@@ -689,7 +689,7 @@ void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* 
 			enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
 			enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
 
-			enemy->shoot_change_to_shoot = 0.01f;
+			enemy->shoot_change_to_shoot = 0.2f;
 			enemy->shoot_cooldown_min = 1.0f;
 			enemy->shoot_last_fire = 0.0f;
 		}

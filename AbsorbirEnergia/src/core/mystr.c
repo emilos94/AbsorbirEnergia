@@ -57,8 +57,8 @@ Mystr* mystr_concat(MemoryArena* arena, Mystr* left, Mystr* right)
 	for (; i < left->length; i++) {
 		result->text[i] = left->text[i];
 	}
-	for (; i < right->length; i++) {
-		result->text[i] = right->text[i];
+	for (; i < left->length + right->length; i++) {
+		result->text[i] = right->text[i - left->length];
 	}
 
 	return result;

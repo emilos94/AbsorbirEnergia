@@ -7,8 +7,8 @@ out vec4 FragColor;
 
 uniform sampler2D font_atlas;
 
-const float width = 0.3;
-const float edge = 0.05;
+const float width = 0.45;
+const float edge = 0.1;
 
 void main() {
 	float distance = texture(font_atlas, pass_uv_coordinates).a;
