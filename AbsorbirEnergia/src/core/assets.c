@@ -14,6 +14,8 @@ Assets* assets_load(MemoryArena* arena_permanent, MemoryArena* arena_temp)
 
 	assets->font_candara = ui_text_font_load(arena_temp, arena_permanent, "res/fonts/candara.fnt", "res/fonts/candara.png");
 
+	assets->sound_laser_shot = sound_source_load(arena_temp, "res/sounds/laser_shot.wav");
+
 	return assets;
 }
 

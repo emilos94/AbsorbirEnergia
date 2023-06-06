@@ -21,6 +21,8 @@ int main(void)
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA_TEST);
 
+	sound_initialize();
+
 	MemoryArena* arena = memory_MemoryArenaCreate(memory_Megabytes(1));
 	MemoryArena* arena_temp = memory_MemoryArenaCreate(memory_Megabytes(5));
 

@@ -3,6 +3,7 @@
 
 #include "../graphics/texture.h"
 #include "../ui/ui.h"
+#include "../core/sound.h"
 
 struct Assets
 {
@@ -14,6 +15,8 @@ struct Assets
 	Texture texture_explosion;
 
 	UI_Font* font_candara;
+
+	SoundSource sound_laser_shot;
 };
 typedef struct Assets Assets;
 

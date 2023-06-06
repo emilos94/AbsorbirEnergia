@@ -126,6 +126,7 @@ void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
 			float bulletHalfSize = 8.0f;
 			Vec2f bulletPosition = math_Vec2fSubScalar(playerMiddle, bulletHalfSize);
 			_game_entity_player_bullet_create(game_state, arena, assets, bulletPosition);
+			sound_play(&assets->sound_laser_shot);
 		}
 	}
 }
@@ -226,6 +227,7 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 					bullet->motion.direction.y *= -1;
 					bullet->collision_layers = CollisionLayer_Player;
 					bullet->transform.rotation = 180.0f;
+					sound_play(&assets->sound_laser_shot);
 				}
 			}
 		}

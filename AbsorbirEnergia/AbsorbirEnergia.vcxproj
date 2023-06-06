@@ -83,7 +83,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Dependencies\include;$(SolutionDir)AbsorbirEnergia\src;</IncludePath>
-    <LibraryPath>$(SolutionDir)Dependencies\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Dependencies\lib;$(SolutionDir)Dependencies\lib\OpenAL;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -132,7 +132,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>${SolutionDir}\AbsorbirEnergia\src;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -140,7 +140,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;shell32.lib;glfw3.lib;opengl32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;shell32.lib;glfw3.lib;opengl32.lib;gdi32.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalOptions>/NODEFAULTLIB:MSVCRTD %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -173,6 +173,7 @@
     <ClCompile Include="src\core\file_loader.c" />
     <ClCompile Include="src\core\memory_arena.c" />
     <ClCompile Include="src\core\mystr.c" />
+    <ClCompile Include="src\core\sound.c" />
     <ClCompile Include="src\core\stb_image.cpp" />
     <ClCompile Include="src\core\time.c" />
     <ClCompile Include="src\game.c" />
@@ -198,6 +199,7 @@
     <ClInclude Include="src\core\file_loader.h" />
     <ClInclude Include="src\core\memory_arena.h" />
     <ClInclude Include="src\core\mystr.h" />
+    <ClInclude Include="src\core\sound.h" />
     <ClInclude Include="src\core\time.h" />
     <ClInclude Include="src\game.h" />
     <ClInclude Include="src\core\input.h" />
@@ -260,6 +262,9 @@
     <None Include="res\shaders\text.vert" />
     <None Include="res\shaders\ui.frag" />
     <None Include="res\shaders\ui.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="res\sounds\laser_shot.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
