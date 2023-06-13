@@ -9,6 +9,7 @@ struct Assets
 {
 	Texture texture_background;
 	Texture texture_enemy;
+	Texture texture_enemy_hopper;
 	Texture texture_electric_shield;
 	Texture texture_player;
 	Texture texture_bullet;

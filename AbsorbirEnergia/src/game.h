@@ -10,6 +10,7 @@
 #include "graphics/renderer.h"
 #include "math/math_util.h"
 #include "ui/ui.h"
+#include "datastructures/LinkedList.h"
 
 // rand
 #include <stdlib.h>
@@ -47,9 +48,8 @@ struct GameState
 
 	MemoryArena* arena_frame;
 
-	Entity* entity_first_free;
-	Entity* entity_first_active;
-	Entity* entity_last_active;
+	LinkedList* entity_freelist;
+	LinkedList* entity_activelist;
 
 	Animation* first_free_animation;
 
@@ -75,18 +75,24 @@ typedef struct GameState GameState;
 
 GameState* game_Init(MemoryArena* arena, Assets* assets);
 
-void game_Input(GameState* gameState, MemoryArena* arena, Assets* assets);
+void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets, f32 delta);
 void game_Update(GameState* gameState, MemoryArena* arena, Assets* assets, float delta);
 void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProgram shader_quad_colored);
 
+Entity* entity_allocate(GameState* game_state, MemoryArena* arena);
 Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale);
 Entity* _game_entity_textured_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale, Texture texture);
 Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale);
 Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position);
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position);
-void _game_entity_free(GameState* gameState, Entity* entity);
+void _game_entity_free(MemoryArena* arena, GameState* gameState, Entity* entity);
 
-void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count);
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count, EnemyType enemy_type);
+
+// entity blueprints
+
+Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Assets* assets);
+Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, Assets* assets);
 
 void _game_playerShieldUpdate(GameState* gameState);
 void _game_animation_update(Entity* entity, float delta);

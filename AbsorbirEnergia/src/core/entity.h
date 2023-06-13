@@ -40,8 +40,15 @@ enum EntityTags
 	EntityTag_Player = 1 << 0,
 	EntityTag_Enemy = 1 << 1,
 	EntityTag_Bullet = 1 << 2,
-	EntityTag_Shield = 1 << 3,
+	EntityTag_Shield = 1 << 3
 };
+typedef u32 EntityTags;
+
+enum EnemyType {
+	EnemyType_Basic,
+	EnemyType_Hopper
+};
+typedef u32 EnemyType;
 
 enum CollisionLayers {
 	CollisionLayer_Player = 1 << 0,
@@ -49,11 +56,7 @@ enum CollisionLayers {
 };
 typedef u32 CollisionLayers;
 
-struct Entity
-{
-	struct Entity* next; // to enable free list
-	struct Entity* prev; // to enable free list
-
+struct Entity {
 	u32 entityId;
 	u32 entityFlags;
 	u32 entityTags;
@@ -81,6 +84,12 @@ struct Entity
 	f32 shoot_cooldown_min;
 	f32 shoot_last_fire;
 	f32 shoot_change_to_shoot;
+	EnemyType enemy_type;
+	b8 moved_yet;
+
+	// basic enemy properties
+	f32 sin_frequency;
+	f32 sin_magnitude;
 
 	// collision
 	CollisionBox collision_box;
@@ -89,16 +98,5 @@ struct Entity
 	u32 health;
 };
 typedef struct Entity Entity;
-
-#define entity_loopback(e, name)\
-	Entity* name = e;\
-	for(name; name != 0; name = name->prev)
-
-#define entity_loop(e, name)\
-	Entity* name = e;\
-	for(name; name != 0; name = name->next)
-
-
-void entity_set_zero(Entity* entity);
 
 #endif // !ENTITY_H

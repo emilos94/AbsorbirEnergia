@@ -66,9 +66,6 @@
     <ClCompile Include="src\core\collision.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\entity.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\core\assets.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -82,6 +79,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\sound.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datastructures\LinkedList.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -152,6 +152,12 @@
     <ClInclude Include="src\core\sound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\datastructures\LinkedList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datastructures\LinkedListPrivate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\shaders\default.frag">
@@ -184,6 +190,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\fonts\candara.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\images\enemy_hopper.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

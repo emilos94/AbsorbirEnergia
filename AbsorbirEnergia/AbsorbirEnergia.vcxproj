@@ -169,13 +169,13 @@
   <ItemGroup>
     <ClCompile Include="src\core\assets.c" />
     <ClCompile Include="src\core\collision.c" />
-    <ClCompile Include="src\core\entity.c" />
     <ClCompile Include="src\core\file_loader.c" />
     <ClCompile Include="src\core\memory_arena.c" />
     <ClCompile Include="src\core\mystr.c" />
     <ClCompile Include="src\core\sound.c" />
     <ClCompile Include="src\core\stb_image.cpp" />
     <ClCompile Include="src\core\time.c" />
+    <ClCompile Include="src\datastructures\LinkedList.c" />
     <ClCompile Include="src\game.c" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\core\input.c" />
@@ -201,6 +201,8 @@
     <ClInclude Include="src\core\mystr.h" />
     <ClInclude Include="src\core\sound.h" />
     <ClInclude Include="src\core\time.h" />
+    <ClInclude Include="src\datastructures\LinkedList.h" />
+    <ClInclude Include="src\datastructures\LinkedListPrivate.h" />
     <ClInclude Include="src\game.h" />
     <ClInclude Include="src\core\input.h" />
     <ClInclude Include="src\graphics\opengl_utils.h" />
@@ -250,6 +252,7 @@
     <Image Include="res\images\base_enemy.png" />
     <Image Include="res\images\container.jpg" />
     <Image Include="res\images\electric_shield.png" />
+    <Image Include="res\images\enemy_hopper.png" />
     <Image Include="res\images\explosion.png" />
     <Image Include="res\images\player.png" />
     <Image Include="res\images\player_bullet.png" />

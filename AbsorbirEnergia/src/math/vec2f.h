@@ -26,4 +26,7 @@ void math_vec2f_zero(Vec2f* vec);
 void math_vec2f_set(Vec2f* vec, float value);
 void math_vec2f_mul_scalar(Vec2f* vec, float scalar);
 
+// utility functions
+Vec2f math_vec2f_random_withinrange(Vec2f origin, f32 minimum_distance, f32 maximum_distance);
+
 #endif // !VEC2F_H

@@ -11,6 +11,7 @@ Assets* assets_load(MemoryArena* arena_permanent, MemoryArena* arena_temp)
 	assets->texture_explosion = graphics_TextureLoad(arena_temp, "res/images/explosion.png");
 	assets->texture_bullet = graphics_TextureLoad(arena_temp, "res/images/player_bullet.png");
 	assets->texture_enemy = graphics_TextureLoad(arena_temp, "res/images/base_enemy.png");
+	assets->texture_enemy_hopper = graphics_TextureLoad(arena_temp, "res/images/enemy_hopper.png");
 
 	assets->font_candara = ui_text_font_load(arena_temp, arena_permanent, "res/fonts/candara.fnt", "res/fonts/candara.png");
 

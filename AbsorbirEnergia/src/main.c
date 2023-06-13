@@ -79,7 +79,7 @@ int main(void)
 			lag -= secondsPerUpdate;
 			updateCounter++;
 
-			game_Input(gameState, arena, assets);
+			game_Input(gameState, arena, assets, secondsPerUpdate);
 			game_Update(gameState, arena, assets, secondsPerUpdate);
 
 			graphics_WindowClear();

@@ -124,3 +124,13 @@ f32 math_vec2f_distance(Vec2f either, Vec2f other)
 	float dy = either.y - other.y;
 	return sqrtf(dx * dx - dy * dy);
 }
+
+
+
+Vec2f math_vec2f_random_withinrange(Vec2f origin, f32 minimum_distance, f32 maximum_distance) {
+	Vec2f result;
+	f32 rand = math_rand() * 2.0f - 1.0f;
+	result.x = minimum_distance + origin.x + rand * (maximum_distance - minimum_distance);
+	result.y = minimum_distance + origin.y + rand * (maximum_distance - minimum_distance);
+	return result;
+}

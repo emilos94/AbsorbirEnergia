@@ -9,9 +9,10 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	gameState->entity_active_count = 0;
 	gameState->entity_free_count = 0;
 
+	gameState->entity_activelist = ds_linkedlist_create(arena);
+	gameState->entity_freelist = ds_linkedlist_create(arena);
+
 	gameState->enemy_alive_count = 0;
-	gameState->entity_first_free = 0;
-	gameState->entity_last_active = 0;
 	gameState->first_free_animation = 0;
 	gameState->enemy_wave_level = 1;
 
@@ -22,9 +23,9 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	// #init player
 	Entity* player = _game_entity_textured_create(arena, gameState, math_vec2f(0.0f, 0.0f), math_vec2f(32.0f, 32.0f), assets->texture_player);
 	player->entityTags = EntityTag_Player;
-	player->motion.acceleration = math_vec2f(600.0f, 5.0f);
-	player->motion.friction = 0.9f;
-	player->motion.velocity = math_vec2f(0.0f, 0.0f);
+	player->motion.acceleration = math_vec2f(900.0f, 5.0f);
+	player->motion.friction = 0.95f;
+	player->motion.velocity = math_vec2f(0.0f, 0.0f); 
 	player->motion.direction = math_vec2f(0.0f, 0.0f);
 	player->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider;
 	player->collision_layers = CollisionLayer_Player;
@@ -78,7 +79,7 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	return gameState;
 }
 
-void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
+void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets, f32 delta)
 {
 	if (game_state->game_state_mode != GameStateMode_Playing) {
 		return;
@@ -86,14 +87,15 @@ void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
 
 	Entity* player = game_state->player;
 	float dx = 0.0f;
-	if (input_IsKeyPressed(GLFW_KEY_A))
+	if (input_IsKeyPressed(GLFW_KEY_A) || input_IsKeyPressed(GLFW_KEY_LEFT))
 	{
 		dx -= 1.0f;
 	}
-	if (input_IsKeyPressed(GLFW_KEY_D))
+	if (input_IsKeyPressed(GLFW_KEY_D) || input_IsKeyPressed(GLFW_KEY_RIGHT))
 	{
 		dx += 1.0f;
 	}
+	//player->transform.position.x += 100.0f * delta * 
 	player->motion.direction.x = dx;
 
 	if (input_IsKeyJustPressed(GLFW_KEY_LEFT_CONTROL))
@@ -133,7 +135,7 @@ void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets)
 
 void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, float delta)
 {
-	entity_loopback(game_state->entity_last_active, e)
+	ds_linkedlist_loop(game_state->entity_activelist, Entity, e, node)
 	{
 		if (game_state->game_state_mode == GameStateMode_MainMenu)
 		{
@@ -191,7 +193,7 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 		{
 			// todo: replace brute force check if it ever becomes a problem.
 			//		 perhaps a grid lookup could work
-			entity_loopback(game_state->entity_last_active, entity_other)
+			ds_linkedlist_loop(game_state->entity_activelist, Entity, entity_other, node2)
 			{
 				b32 is_self = entity_other == e;
 				if (is_self) {
@@ -209,19 +211,17 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 
 		// #logic enemy
 		if (e->entityTags & EntityTag_Enemy) {
-			// lerp onto screen
-			f32 offset_difference = math_lerp(0.0f, game_state->enemy_spawn_y_current_offset, 0.2f) * delta;
-			game_state->enemy_spawn_y_current_offset -= offset_difference;
-			game_state->enemy_spawn_y_current_offset = math_MaxF(game_state->enemy_spawn_y_current_offset, 0.0f);
-
-			e->transform.position.y -= offset_difference;
-
+			b8 will_shoot = FALSE;
 			// shoot
 			if (time_now_seconds() >= e->shoot_last_fire + e->shoot_cooldown_min) {
-				b8 will_shoot = e->shoot_change_to_shoot >= math_rand();
+				will_shoot = e->shoot_change_to_shoot >= math_rand();
 				e->shoot_last_fire = time_now_seconds();
+			}
+
+			switch (e->enemy_type)
+			{
+			case EnemyType_Basic:
 				if (will_shoot) {
-					e->shoot_last_fire = time_now_seconds();
 					Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
 					bullet->transform.position.x += e->transform.scale.x / 2.0f;
 					bullet->motion.direction.y *= -1;
@@ -229,6 +229,59 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 					bullet->transform.rotation = 180.0f;
 					sound_play(&assets->sound_laser_shot);
 				}
+				// movement
+				{
+					e->transform.position.x += sinf(game_state->secondsSinceStart * e->sin_frequency) * e->sin_magnitude;
+				}
+				break;
+
+			case EnemyType_Hopper:
+				// pick new target if at target
+				if (time_now_seconds() >= e->move_last_switch + e->move_switch_cooldown) {
+					f32 min_move_distance = 50.0f;
+					f32 max_move_distance = 100.0f;
+					f32 min_y_value = 80.0f;
+
+					Vec2f new_target = math_vec2f_random_withinrange(e->transform.position, min_move_distance, max_move_distance);
+
+					new_target.x = math_clamp(0.0f, new_target.x, graphics_window_render_width() - e->transform.scale.x);
+					new_target.y = math_clamp(min_y_value, new_target.y, graphics_window_render_height() - e->transform.scale.y);
+
+					// Avoid hopper stuck in corners
+					if (new_target.x >= graphics_window_render_width() - e->transform.scale.x) {
+						new_target.x -= math_rand_range(min_move_distance, max_move_distance);
+					}					
+					else if (new_target.x <= 0.0f) {
+						new_target.x += math_rand_range(min_move_distance, max_move_distance);
+					}
+
+					if (new_target.y >= graphics_window_render_height() - e->transform.scale.y) {
+						new_target.y -= math_rand_range(min_move_distance, max_move_distance);
+					}
+					else if (new_target.y <= min_y_value) {
+						new_target.y += math_rand_range(min_move_distance, max_move_distance);
+					}
+
+					e->target_position = new_target;
+					e->move_last_switch = time_now_seconds();
+				}
+
+				e->transform.position.x = math_lerp(e->transform.position.x, e->target_position.x, 0.1f);
+				e->transform.position.y = math_lerp(e->transform.position.y, e->target_position.y, 0.1f);
+				
+				if (will_shoot) {
+					f32 bullet_x = e->transform.position.x;
+					for (u32 i = 0; i < 2; i++) {
+						Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
+						bullet->transform.position.x = bullet_x;
+						bullet->motion.direction.y *= -1;
+						bullet->collision_layers = CollisionLayer_Player;
+						bullet->transform.rotation = 180.0f;
+						bullet_x += e->transform.scale.x;
+					}
+					sound_play(&assets->sound_laser_shot);
+				}
+				break;
 			}
 		}
 	}
@@ -297,13 +350,10 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			health_block_x -= health_block_width + 2.0f;
 		}
 	}
-
-
-	entity_loopback(game_state->entity_last_active, entity)
-	{
-		if (entity->entityFlags & EntityFlag_MarkedForDestruction)
-		{
-			_game_entity_free(game_state, entity);
+	
+	ds_linkedlist_loop(game_state->entity_activelist, Entity, entity, listnode) {
+		if (entity->entityFlags & EntityFlag_MarkedForDestruction) {
+			_game_entity_free(arena, game_state, entity);
 		}
 	}
 
@@ -379,22 +429,36 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 		}
 	}
 
-	// Wave respawn
+	// #levels
 	{
 		if (game_state->enemy_alive_count == 0 && 
 			time_now_seconds() - game_state->enemy_wave_cleared_time >= game_state->enemy_wave_respawn_cooldown) {
 			switch (game_state->enemy_wave_level) {
 			case 1:
-				_game_enemy_wave_create(game_state, arena, assets, 3, 1);
+				_game_enemy_wave_create(game_state, arena, assets, 3, 1, EnemyType_Basic);
 				break;
 			case 2:
-				_game_enemy_wave_create(game_state, arena, assets, 3, 2);
+				_game_enemy_wave_create(game_state, arena, assets, 3, 2, EnemyType_Basic);
 				break;
 			case 3:
-				_game_enemy_wave_create(game_state, arena, assets, 4, 2);
+				_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
+				break;
+			case 4:
+				_game_enemy_wave_create(game_state, arena, assets, 4, 3, EnemyType_Basic);
+				break;
+			case 5:
+				_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
+				break;
+			case 6:
+				_game_enemy_wave_create(game_state, arena, assets, 2, 2, EnemyType_Hopper);
+				break;
+			case 7:
+				_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
+				_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
 				break;
 			default:
-				_game_enemy_wave_create(game_state, arena, assets, 4, 3);
+				_game_enemy_wave_create(game_state, arena, assets, 4, game_state->enemy_wave_level, EnemyType_Basic);
+				_game_enemy_wave_create(game_state, arena, assets, 2, game_state->enemy_wave_level / 2, EnemyType_Hopper);
 				break;
 			}
 		}
@@ -412,7 +476,7 @@ void game_render(GameState* game_state, ShaderProgram shader_default, ShaderProg
 		return;
 	}
 
-	entity_loop(game_state->entity_first_active, entity)
+	ds_linkedlist_loop(game_state->entity_activelist, Entity, entity, node)
 	{
 		if (!entity->isVisible)
 		{
@@ -468,37 +532,6 @@ void _game_animation_update(Entity* entity, float delta)
 	animation->spriteIndex = (u32)floor(animation->currentTime / timePerSprite);
 }
 
-
-Entity* _game_entity_allocate(MemoryArena* arena, GameState* game_state)
-{
-	Entity* result = game_state->entity_first_free;
-	if (result)
-	{
-		game_state->entity_first_free = game_state->entity_first_free->next;
-		game_state->entity_free_count--;
-	}
-	else
-	{
-		result = memory_struct_zero_allocate(arena, Entity);
-	}
-
-	if (!game_state->entity_first_active)
-	{
-		game_state->entity_first_active = result;
-	}
-
-	if (game_state->entity_last_active)
-	{
-		game_state->entity_last_active->next = result;
-	}
-
-	entity_set_zero(result);
-	result->prev = game_state->entity_last_active;
-	game_state->entity_last_active = result;
-	game_state->entity_active_count++;
-	return result;
-}
-
 Entity* _game_entity_textured_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale, Texture texture)
 {
 	Entity* entity = _game_entity_create(arena, gameState, position, scale);
@@ -510,7 +543,7 @@ Entity* _game_entity_textured_create(MemoryArena* arena, GameState* gameState, V
 
 Entity* _game_entity_create(MemoryArena* arena, GameState* gameState, Vec2f position, Vec2f scale)
 {
-	Entity* entity = _game_entity_allocate(arena, gameState);
+	Entity* entity = entity_allocate(gameState, arena);
 	entity->transform.position = position;
 	entity->transform.scale = scale;
 	entity->transform.rotation = 0.0f;
@@ -542,7 +575,7 @@ Entity* _game_entity_player_bullet_create(GameState* gameState, MemoryArena* are
 // #init explosion
 Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, Assets* assets, Vec2f position)
 {
-	Entity* explosion = _game_entity_allocate(arena, gameState);
+	Entity* explosion = entity_allocate(gameState, arena);
 	explosion->transform.position = position;
 	explosion->transform.scale = math_vec2f(32.0f, 32.0f);
 	explosion->isVisible = TRUE;
@@ -565,31 +598,9 @@ Entity* _game_entity_explosion_create(GameState* gameState, MemoryArena* arena, 
 	return explosion;
 }
 
-void _game_entity_free(GameState* game_state, Entity* entity)
-{
-	if (entity->prev)
-	{
-		entity->prev->next = entity->next;
-	}
-
-	if (entity->next)
-	{
-		entity->next->prev = entity->prev;
-	}
-	entity->next = game_state->entity_first_free;
-	game_state->entity_first_free = entity;
-	game_state->entity_free_count++;
-	game_state->entity_active_count--;
-
-	if (game_state->entity_last_active == entity)
-	{
-		game_state->entity_last_active = entity->prev;
-	}
-
-	if (game_state->entity_first_active == entity)
-	{
-		game_state->entity_first_active = entity->next;
-	}
+void _game_entity_free(MemoryArena* arena, GameState* game_state, Entity* entity) {
+	ds_linkedlist_remove(game_state->entity_activelist, entity);
+	ds_linkedlist_pushback(arena, game_state->entity_freelist, entity);
 }
 
 // #collision
@@ -614,19 +625,27 @@ void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* as
 
 	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Player) {
 		Entity* player = other;
-		player->health--;
-		if (player->health == 0) {
-			gameState->game_state_mode = GameStateMode_GameOver;
-			player->health = PLAYER_START_HEALTH;
-			player->motion.velocity.x = 0.0f;
+		if (gameState->playerShieldState.isActive) {
+			gameState->playerShieldState.isActive = FALSE;
+			gameState->player_shield->isVisible = FALSE;
+		}
+		else {
+			player->health--;
+			if (player->health == 0) {
+				gameState->game_state_mode = GameStateMode_GameOver;
+				player->health = PLAYER_START_HEALTH;
+				player->motion.velocity.x = 0.0f;
 
-			// clear everything except background and player
-			entity_loop(gameState->entity_first_active->next, entity) {
-				if (entity != gameState->player && entity != gameState->player_shield) {
-					entity->entityFlags |= EntityFlag_MarkedForDestruction;
+				// clear everything except background and player
+				ds_linkedlist_loop(gameState->entity_activelist, Entity, entity, node) {
+					if (entity != gameState->player && entity != gameState->player_shield && entity != gameState->entity_background) {
+						entity->entityFlags |= EntityFlag_MarkedForDestruction;
+					}
 				}
 			}
 		}
+
+		_game_entity_explosion_create(gameState, arena, assets, either->transform.position);
 		either->entityFlags |= EntityFlag_MarkedForDestruction;
 	}
 }
@@ -660,11 +679,10 @@ Animation* _game_graphics_animation_allocate(GameState* game_state, MemoryArena*
 	return result;
 }
 
-// #init enemy wave
-void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count)
+// #waves
+void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count, EnemyType enemy_type)
 {
 	f32 enemyWidth = 32;
-	f32 screenWidth = 320;
 	f32 spacing = graphics_window_render_width() / (float)enemies_per_row;
 	f32 y_position = 140.0f;
 	f32 y_spawn_offset = 0.0f;// graphics_window_render_height();
@@ -673,29 +691,99 @@ void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* 
 
 	for (u32 i = 0; i < row_count; i++) {
 		for (u32 j = 0; j < enemies_per_row; j++) {
+			Entity* enemy = 0;
+			switch (enemy_type) {
+			case EnemyType_Basic:
+				enemy = entity_enemy_basic_create(game_state, arena, assets);
+				break;
+			case EnemyType_Hopper:
+				enemy = entity_enemy_hopper_create(game_state, arena, assets);
+				break;
+			}
+
 			float xPosition = spacing * (float)(j + 1) - enemyWidth / 2.0f - spacing / 2.0f;
-			Entity* enemy = _game_entity_textured_create(arena, game_state, math_vec2f(xPosition, y_position + y_spawn_offset), math_vec2f(32.0f, 32.0f), assets->texture_enemy);
-			enemy->isVisible = TRUE;
-			enemy->entityFlags |= EntityFlag_EnemyBaseMover | EntityFlag_HasMotion | EntityFlag_HasCollider;
-			enemy->entityTags = EntityTag_Enemy;
-			enemy->collision_layers = CollisionLayer_Enemy;
+			enemy->transform.position.x = xPosition;
+			enemy->transform.position.y = y_position;
 
-			enemy->move_switch_cooldown = 0.9f;
-			enemy->move_last_switch = time_now_seconds();
-			enemy->target_position = math_vec2f(xPosition - 64.0f, y_position);
-
-			enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
-			enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
-			enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
-			enemy->motion.friction = 1.0f;
-			enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
-			enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
-
-			enemy->shoot_change_to_shoot = 0.2f;
-			enemy->shoot_cooldown_min = 1.0f;
-			enemy->shoot_last_fire = 0.0f;
+			// for hopper
+			enemy->target_position = math_vec2f_random_withinrange(enemy->transform.position, 50.0f, 100.0f);
+			enemy->target_position.x = math_clamp(0.0f, enemy->target_position.x, graphics_window_render_width() - enemy->transform.scale.x);
+			enemy->target_position.y = math_clamp(80.0f, enemy->target_position.y, graphics_window_render_height() - enemy->transform.scale.y);
 		}
 		y_position -= row_spacing;
 	}
 	game_state->enemy_alive_count = enemies_per_row * row_count;
+}
+
+Entity* entity_allocate(GameState* game_state, MemoryArena* arena) {
+	Entity* result = 0;
+	if (game_state->entity_freelist->count > 0) {
+		result = ds_linkedlist_popback(game_state->entity_freelist);
+	}
+	else {
+		result = memory_struct_zero_allocate(arena, Entity);
+	}
+	memset(result, 0, sizeof(Entity));
+	ds_linkedlist_pushback(arena, game_state->entity_activelist, result);
+	return result;
+}
+
+// Entity #blueprints
+Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Assets* assets) {
+
+	Entity* enemy = entity_allocate(game_state, arena);
+
+	enemy->transform.scale = math_vec2f(32.0f, 32.0f);
+
+	enemy->texture = assets->texture_enemy;
+
+	enemy->isVisible = TRUE;
+	enemy->entityFlags = EntityFlag_HasCollider | EntityFlag_HasTexture;
+	enemy->entityTags = EntityTag_Enemy;
+	enemy->enemy_type = EnemyType_Basic;
+	enemy->collision_layers = CollisionLayer_Enemy;
+
+	enemy->sin_frequency = 2.0f;
+	enemy->sin_magnitude = 1.0f;
+	
+	enemy->motion.acceleration = math_vec2f(30.0f, 1.0f);
+	enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
+	enemy->motion.direction = math_vec2f(-1.0f, 0.0f);
+	enemy->motion.friction = 1.0f;
+	enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+	enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
+
+	enemy->shoot_change_to_shoot = 0.2f;
+	enemy->shoot_cooldown_min = 1.0f;
+	enemy->shoot_last_fire = 0.0f;
+
+	return enemy;
+}
+
+Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, Assets* assets) {
+	Entity* enemy = entity_allocate(game_state, arena);
+
+	enemy->texture = assets->texture_enemy_hopper;
+	enemy->transform.scale = math_vec2f(32.0f, 32.0f);
+
+	enemy->isVisible = TRUE;
+	enemy->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider | EntityFlag_HasTexture;
+	enemy->entityTags = EntityTag_Enemy;
+	enemy->enemy_type = EnemyType_Hopper;
+	enemy->collision_layers = CollisionLayer_Enemy;
+
+	enemy->move_switch_cooldown = 5.0f;
+	enemy->move_last_switch = time_now_seconds();
+
+	enemy->motion.acceleration = math_vec2f(30.0f, 30.0f);
+	enemy->motion.velocity = math_vec2f(0.0f, 0.0f);
+	enemy->motion.friction = 1.0f;
+	enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
+	enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
+
+	enemy->shoot_change_to_shoot = 0.4f;
+	enemy->shoot_cooldown_min = 1.0f;
+	enemy->shoot_last_fire = 0.0f;
+
+	return enemy;
 }
