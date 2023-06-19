@@ -27,11 +27,15 @@ GameState* game_Init(MemoryArena* arena, Assets* assets)
 	player->motion.friction = 0.95f;
 	player->motion.velocity = math_vec2f(0.0f, 0.0f); 
 	player->motion.direction = math_vec2f(0.0f, 0.0f);
-	player->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider;
+	player->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider | EntityFlag_HasTint;
 	player->collision_layers = CollisionLayer_Player;
 	player->collision_box.bottom_left = math_vec2f(4.0f, 4.0f);
 	player->collision_box.top_right = math_vec2f(28.0f, 28.0f);
 	player->health = PLAYER_START_HEALTH;
+
+	player->tint_color = math_vec3f(0.8f, 0.1f, 0.0f);
+	player->tint_duration = 0.3f;
+	player->tint_active = FALSE;
 
 	gameState->player = player;
 	gameState->entity_background = background;
@@ -95,7 +99,6 @@ void game_Input(GameState* game_state, MemoryArena* arena, Assets* assets, f32 d
 	{
 		dx += 1.0f;
 	}
-	//player->transform.position.x += 100.0f * delta * 
 	player->motion.direction.x = dx;
 
 	if (input_IsKeyJustPressed(GLFW_KEY_LEFT_CONTROL))
@@ -284,12 +287,39 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 				break;
 			}
 		}
+
+		// #tint
+		if (e->entityFlags & EntityFlag_HasTint) {
+			f32 tint_time_progression = 0.0f;
+
+			// Set tint strength if within duration
+			if (e->tint_active && tint_time_progression <= e->tint_duration) {
+				tint_time_progression = time_now_seconds() - e->tint_start;
+				f32 tint_progress = 0.0f;
+				if (e->tint_duration > 0.0f) {
+					tint_progress = math_minf(1.0f, tint_time_progression / e->tint_duration);
+				}
+
+				f32 tint_strength = 0.0f;
+				if (tint_progress <= 0.5f) {
+					tint_strength = math_ease_out_cubic(tint_progress * 2.0f);
+				}
+				else {
+					tint_strength = math_ease_out_cubic((1.0f - tint_progress) * 2.0f);
+				}
+
+				e->tint_strength = tint_strength;
+			}
+			else {
+				e->tint_active = FALSE;
+			}
+		}
 	}
 
 	// clamp player position
 	Entity* player = game_state->player;
-	player->transform.position.x = math_MaxF(0.0f, player->transform.position.x);
-	player->transform.position.x = math_MinF(320.0f - player->transform.scale.x, player->transform.position.x);
+	player->transform.position.x = math_maxf(0.0f, player->transform.position.x);
+	player->transform.position.x = math_minf(320.0f - player->transform.scale.x, player->transform.position.x);
 
 	_game_playerShieldUpdate(game_state);
 
@@ -609,18 +639,25 @@ void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* as
 	if (!on_same_collision_layer) return;
 
 	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Enemy) {
-		_game_entity_explosion_create(gameState, arena, assets, other->transform.position);
+		other->health--;
+		if (other->health == 0) {
+			_game_entity_explosion_create(gameState, arena, assets, other->transform.position);
+			other->entityFlags |= EntityFlag_MarkedForDestruction;
+			gameState->enemy_alive_count--;
+			gameState->player_score += 100;
+
+			if (gameState->enemy_alive_count == 0)
+			{
+				gameState->enemy_wave_cleared_time = time_now_seconds();
+				gameState->enemy_wave_level++;
+			}
+		}
+		else {
+			other->tint_active = TRUE;
+			other->tint_start = time_now_seconds();
+		}
 
 		either->entityFlags |= EntityFlag_MarkedForDestruction;
-		other->entityFlags |= EntityFlag_MarkedForDestruction;
-		gameState->enemy_alive_count--;
-		gameState->player_score += 100;
-
-		if (gameState->enemy_alive_count == 0)
-		{
-			gameState->enemy_wave_cleared_time = time_now_seconds();
-			gameState->enemy_wave_level++;
-		}
 	}
 
 	if (either->entityTags & EntityTag_Bullet && other->entityTags & EntityTag_Player) {
@@ -631,6 +668,8 @@ void _game_collision_handle(GameState* gameState, MemoryArena* arena, Assets* as
 		}
 		else {
 			player->health--;
+			player->tint_active = TRUE;
+			player->tint_start = time_now_seconds();
 			if (player->health == 0) {
 				gameState->game_state_mode = GameStateMode_GameOver;
 				player->health = PLAYER_START_HEALTH;
@@ -738,10 +777,15 @@ Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Ass
 	enemy->texture = assets->texture_enemy;
 
 	enemy->isVisible = TRUE;
-	enemy->entityFlags = EntityFlag_HasCollider | EntityFlag_HasTexture;
+	enemy->entityFlags = EntityFlag_HasCollider | EntityFlag_HasTexture | EntityFlag_HasTint;
 	enemy->entityTags = EntityTag_Enemy;
 	enemy->enemy_type = EnemyType_Basic;
 	enemy->collision_layers = CollisionLayer_Enemy;
+	enemy->health = 2;
+
+	enemy->tint_color = math_vec3f(0.8f, 0.1f, 0.0f);
+	enemy->tint_duration = 0.3f;
+	enemy->tint_active = FALSE;
 
 	enemy->sin_frequency = 2.0f;
 	enemy->sin_magnitude = 1.0f;
@@ -754,7 +798,7 @@ Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Ass
 	enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
 
 	enemy->shoot_change_to_shoot = 0.2f;
-	enemy->shoot_cooldown_min = 1.0f;
+	enemy->shoot_cooldown_min = 2.0f;
 	enemy->shoot_last_fire = 0.0f;
 
 	return enemy;
@@ -767,10 +811,15 @@ Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, As
 	enemy->transform.scale = math_vec2f(32.0f, 32.0f);
 
 	enemy->isVisible = TRUE;
-	enemy->entityFlags |= EntityFlag_HasMotion | EntityFlag_HasCollider | EntityFlag_HasTexture;
+	enemy->entityFlags |= EntityFlag_HasCollider | EntityFlag_HasTexture | EntityFlag_HasTint;
 	enemy->entityTags = EntityTag_Enemy;
 	enemy->enemy_type = EnemyType_Hopper;
 	enemy->collision_layers = CollisionLayer_Enemy;
+	enemy->health = 2;
+
+	enemy->tint_color = math_vec3f(0.8f, 0.1f, 0.0f);
+	enemy->tint_duration = 0.15f;
+	enemy->tint_active = FALSE;
 
 	enemy->move_switch_cooldown = 5.0f;
 	enemy->move_last_switch = time_now_seconds();
@@ -781,8 +830,8 @@ Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, As
 	enemy->collision_box.bottom_left = math_vec2f(0.0f, 0.0f);
 	enemy->collision_box.top_right = math_vec2f(32.0f, 32.0f);
 
-	enemy->shoot_change_to_shoot = 0.4f;
-	enemy->shoot_cooldown_min = 1.0f;
+	enemy->shoot_change_to_shoot = 0.3f;
+	enemy->shoot_cooldown_min = 2.0f;
 	enemy->shoot_last_fire = 0.0f;
 
 	return enemy;

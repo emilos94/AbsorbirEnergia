@@ -9,13 +9,16 @@
 #define FLOAT_EPSILON 0.0001f
 
 float math_ToRadians(float angle);
-float math_MaxF(float a, float b);
-float math_MinF(float a, float b);
+float math_maxf(float a, float b);
+float math_minf(float a, float b);
 b32 math_float_equals(float a, float b);
 float math_clamp(float min, float value, float max);
 float math_lerp(float a, float b, float rate);
 float math_abs(float a);
 float math_rand();
 f32 math_rand_range(f32 min, f32 max);
+
+// easings
+f32 math_ease_out_cubic(f32 value);
 
 #endif // !MATH_UTIL_H

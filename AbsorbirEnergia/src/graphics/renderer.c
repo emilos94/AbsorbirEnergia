@@ -170,18 +170,25 @@ void graphics_entity_render(ShaderProgram shader, Entity* entity)
 	Mat4f model = math_Mat4ModelMatrixTransform(&entity->transform);
 	graphics_ShaderSetUniformMat4(shader, "model", &model);
 
-	if (entity->entityFlags & EntityFlag_HasAnimations)
-	{
+	if (entity->entityFlags & EntityFlag_HasAnimations) {
 		Animation* animation = entity->animations[entity->currentAnimation];
 		graphics_TextureBind(&entity->spriteSheet.texture);
 		graphics_ShaderSetUniformF(shader, "spriteCount", (float)entity->spriteSheet.spriteCount);
 		graphics_ShaderSetUniformF(shader, "spriteIndex", (float)animation->spriteIndex);
 	}
-	else
-	{
+	else {
 		graphics_TextureBind(&entity->texture);
 		graphics_ShaderSetUniformF(shader, "spriteCount", 1.0f);
 		graphics_ShaderSetUniformF(shader, "spriteIndex", 0.0f);
+	}
+
+	if (entity->tint_active) {
+		graphics_ShaderSetUniformF(shader, "tintStrength", entity->tint_strength);
+		Vec3f tint_color = entity->tint_color;
+		graphics_shader_uniform_3f(shader, "tintColor", tint_color.x, tint_color.y, tint_color.z);
+	}
+	else {
+		graphics_ShaderSetUniformF(shader, "tintStrength", 0.0f);
 	}
 
 	graphics_VaoRender(&quadVao);

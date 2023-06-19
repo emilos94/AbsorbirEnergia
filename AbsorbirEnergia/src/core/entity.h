@@ -4,6 +4,7 @@
 #include "definitions.h"
 #include "collision.h"
 #include "../math/vec2f.h"
+#include "../math/vec3f.h"
 #include "../graphics/texture.h"
 #include "../graphics/spritesheet.h"
 
@@ -33,6 +34,7 @@ enum EntityFlags
 	EntityFlag_HasDestroyTimer = 1 << 4,
 	EntityFlag_HasCollider = 1 << 5,
 	EntityFlag_MarkedForDestruction = 1 << 6,
+	EntityFlag_HasTint = 1 << 7
 };
 
 enum EntityTags
@@ -52,7 +54,7 @@ typedef u32 EnemyType;
 
 enum CollisionLayers {
 	CollisionLayer_Player = 1 << 0,
-	CollisionLayer_Enemy = 1 << 1,
+	CollisionLayer_Enemy = 1 << 1
 };
 typedef u32 CollisionLayers;
 
@@ -96,6 +98,13 @@ struct Entity {
 	CollisionLayers collision_layers;
 
 	u32 health;
+
+	// tinting
+	Vec3f tint_color;
+	f32 tint_strength;
+	f32 tint_start;
+	f32 tint_duration;
+	b8 tint_active;
 };
 typedef struct Entity Entity;
 

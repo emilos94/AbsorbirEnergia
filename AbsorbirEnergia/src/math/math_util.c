@@ -6,14 +6,14 @@ float math_ToRadians(float angle)
 }
 
 
-float math_MaxF(float a, float b)
+float math_maxf(float a, float b)
 {
 	if (a >= b) return a;
 
 	return b;
 }
 
-float math_MinF(float a, float b)
+float math_minf(float a, float b)
 {
 	if (a <= b) return a;
 
@@ -65,4 +65,9 @@ f32 math_rand_range(f32 min, f32 max) {
 	f32 range = math_abs(max - min);
 
 	return min + result * range;
+}
+
+
+f32 math_ease_out_cubic(f32 value) {
+	f32 result = 1 - powf(1 - value, 3);
 }
