@@ -89,10 +89,20 @@ void _game_entity_free(MemoryArena* arena, GameState* gameState, Entity* entity)
 
 void _game_enemy_wave_create(GameState* game_state, MemoryArena* arena, Assets* assets, u32 enemies_per_row, u32 row_count, EnemyType enemy_type);
 
-// entity blueprints
+// entity updates
+void game_entity_enemy_update(Entity* entity, GameState* game_state, MemoryArena* arena, Assets* assets);
+void game_entity_tint_update(Entity* entity);
 
+// entity blueprints
 Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Assets* assets);
 Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, Assets* assets);
+
+void game_wave_spawn_next(GameState* game_state, MemoryArena* arena, Assets* assets);
+
+// game ui
+void game_ui_playing(GameState* game_state, Assets* assets);
+void game_ui_mainmenu(GameState* game_state, Assets* assets);
+void game_ui_gameover(GameState* game_state, Assets* assets);
 
 void _game_playerShieldUpdate(GameState* gameState);
 void _game_animation_update(Entity* entity, float delta);

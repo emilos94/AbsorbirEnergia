@@ -145,24 +145,6 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 			break;
 		}
 
-		if (e->entityFlags & EntityFlag_EnemyBaseMover)
-		{
-			f32 distance = math_vec2f_distance(e->transform.position, e->target_position);
-			e->transform.position.x += distance * 0.1f * e->motion.direction.x * delta;
-			
-			f32 x_direction = e->motion.direction.x;
-			if (x_direction > 0.0f && e->transform.position.x >= e->target_position.x)
-			{
-				e->motion.direction.x *= -1.0f;
-				e->target_position.x -= 64.0f;
-			}
-			if (x_direction < 0.0f && e->transform.position.x <= e->target_position.x)
-			{
-				e->motion.direction.x *= -1.0f;
-				e->target_position.x += 64.0f;
-			}
-		}
-
 		if (e->entityFlags & EntityFlag_HasMotion)
 		{
 			// p' = vt + p
@@ -214,105 +196,12 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 
 		// #logic enemy
 		if (e->entityTags & EntityTag_Enemy) {
-			b8 will_shoot = FALSE;
-			// shoot
-			if (time_now_seconds() >= e->shoot_last_fire + e->shoot_cooldown_min) {
-				will_shoot = e->shoot_change_to_shoot >= math_rand();
-				e->shoot_last_fire = time_now_seconds();
-			}
-
-			switch (e->enemy_type)
-			{
-			case EnemyType_Basic:
-				if (will_shoot) {
-					Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
-					bullet->transform.position.x += e->transform.scale.x / 2.0f;
-					bullet->motion.direction.y *= -1;
-					bullet->collision_layers = CollisionLayer_Player;
-					bullet->transform.rotation = 180.0f;
-					sound_play(&assets->sound_laser_shot);
-				}
-				// movement
-				{
-					e->transform.position.x += sinf(game_state->secondsSinceStart * e->sin_frequency) * e->sin_magnitude;
-				}
-				break;
-
-			case EnemyType_Hopper:
-				// pick new target if at target
-				if (time_now_seconds() >= e->move_last_switch + e->move_switch_cooldown) {
-					f32 min_move_distance = 50.0f;
-					f32 max_move_distance = 100.0f;
-					f32 min_y_value = 80.0f;
-
-					Vec2f new_target = math_vec2f_random_withinrange(e->transform.position, min_move_distance, max_move_distance);
-
-					new_target.x = math_clamp(0.0f, new_target.x, graphics_window_render_width() - e->transform.scale.x);
-					new_target.y = math_clamp(min_y_value, new_target.y, graphics_window_render_height() - e->transform.scale.y);
-
-					// Avoid hopper stuck in corners
-					if (new_target.x >= graphics_window_render_width() - e->transform.scale.x) {
-						new_target.x -= math_rand_range(min_move_distance, max_move_distance);
-					}					
-					else if (new_target.x <= 0.0f) {
-						new_target.x += math_rand_range(min_move_distance, max_move_distance);
-					}
-
-					if (new_target.y >= graphics_window_render_height() - e->transform.scale.y) {
-						new_target.y -= math_rand_range(min_move_distance, max_move_distance);
-					}
-					else if (new_target.y <= min_y_value) {
-						new_target.y += math_rand_range(min_move_distance, max_move_distance);
-					}
-
-					e->target_position = new_target;
-					e->move_last_switch = time_now_seconds();
-				}
-
-				e->transform.position.x = math_lerp(e->transform.position.x, e->target_position.x, 0.1f);
-				e->transform.position.y = math_lerp(e->transform.position.y, e->target_position.y, 0.1f);
-				
-				if (will_shoot) {
-					f32 bullet_x = e->transform.position.x;
-					for (u32 i = 0; i < 2; i++) {
-						Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
-						bullet->transform.position.x = bullet_x;
-						bullet->motion.direction.y *= -1;
-						bullet->collision_layers = CollisionLayer_Player;
-						bullet->transform.rotation = 180.0f;
-						bullet_x += e->transform.scale.x;
-					}
-					sound_play(&assets->sound_laser_shot);
-				}
-				break;
-			}
+			game_entity_enemy_update(e, game_state, arena, assets);
 		}
 
 		// #tint
 		if (e->entityFlags & EntityFlag_HasTint) {
-			f32 tint_time_progression = 0.0f;
-
-			// Set tint strength if within duration
-			if (e->tint_active && tint_time_progression <= e->tint_duration) {
-				tint_time_progression = time_now_seconds() - e->tint_start;
-				f32 tint_progress = 0.0f;
-				if (e->tint_duration > 0.0f) {
-					tint_progress = math_minf(1.0f, tint_time_progression / e->tint_duration);
-				}
-
-				f32 tint_strength = 0.0f;
-				if (tint_progress <= 0.5f) {
-					tint_strength = math_ease_out_cubic(tint_progress * 2.0f);
-				}
-				else {
-					tint_strength = math_ease_out_cubic((1.0f - tint_progress) * 2.0f);
-				}
-
-				e->tint_strength = tint_strength;
-			}
-			else {
-				e->tint_active = FALSE;
-			}
+			game_entity_tint_update(e);
 		}
 	}
 
@@ -323,174 +212,34 @@ void game_Update(GameState* game_state, MemoryArena* arena, Assets* assets, floa
 
 	_game_playerShieldUpdate(game_state);
 
-	// in game ui
-	if (game_state->game_state_mode == GameStateMode_Playing) {
-		f32 score_label_x = 10.0f;
-		Mystr* score = mystr_create(game_state->arena_frame, "score: ");
-		UI_Text* text = ui_text_create(
-			score,
-			assets->font_candara,
-			score_label_x,
-			graphics_window_render_height() - 10.0f,
-			0.1f,
-			graphics_window_render_width(),
-			FALSE
-		);
-		score_label_x += text->width;
-
-		Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
-		ui_text_create(
-			score_number_str,
-			assets->font_candara,
-			score_label_x,
-			graphics_window_render_height() - 10.0f,
-			0.1f,
-			graphics_window_render_width(),
-			FALSE
-		);
-
-		f32 level_label_x = graphics_window_render_width() - 40.0f;
-		Mystr* level_label = mystr_create(game_state->arena_frame, "level: ");
-		UI_Text* level_label_text = ui_text_create(
-			level_label,
-			assets->font_candara,
-			level_label_x,
-			graphics_window_render_height() - 10.0f,
-			0.1f,
-			graphics_window_render_width(),
-			FALSE
-		);
-		level_label_x += level_label_text->width;
-
-		Mystr* level_number = mystr_u32_to_mystr(game_state->arena_frame, game_state->enemy_wave_level);
-		ui_text_create(
-			level_number,
-			assets->font_candara,
-			level_label_x,
-			graphics_window_render_height() - 10.0f,
-			0.1f,
-			graphics_window_render_width(),
-			FALSE
-		);
-
-		f32 health_block_width = 15.0f;
-		f32 health_block_x = graphics_window_render_width() - health_block_width - 2.0f;
-		for (u32 i = 0; i < game_state->player->health; i++) {
-			ui_block(health_block_x, 5.0f, health_block_width, 6.0f, math_vec3f(0.2f, 1.0f, 0.2f));
-			health_block_x -= health_block_width + 2.0f;
-		}
-	}
-	
 	ds_linkedlist_loop(game_state->entity_activelist, Entity, entity, listnode) {
 		if (entity->entityFlags & EntityFlag_MarkedForDestruction) {
 			_game_entity_free(arena, game_state, entity);
 		}
+	}	
+	
+	// #ui in game
+	if (game_state->game_state_mode == GameStateMode_Playing) {
+		game_ui_playing(game_state, assets);
 	}
 
 	// #ui main menu
-	if (game_state->game_state_mode == GameStateMode_MainMenu)
-	{
-		Mystr* str = mystr_create(game_state->arena_frame, "Press space to begin!");
-		UI_Text* text = ui_text_create(
-			str,
-			assets->font_candara,
-			0.0f, 
-			120.0f, 
-			0.3f,
-			graphics_window_render_width(), 
-			TRUE
-		);
-
-		if (input_IsKeyPressed(GLFW_KEY_SPACE)) {
-			game_state->game_state_mode = GameStateMode_Playing;
-		}
+	if (game_state->game_state_mode == GameStateMode_MainMenu) {
+		game_ui_mainmenu(game_state, assets);
 	}
 
 	// #ui game over
 	if (game_state->game_state_mode == GameStateMode_GameOver) {
-		f32 y_placement = 120.0f;
-
-		Mystr* str = mystr_create(game_state->arena_frame, "Game over!");
-		UI_Text* text_game_over = ui_text_create(
-			str,
-			assets->font_candara,
-			0.0f,
-			y_placement,
-			0.3f,
-			graphics_window_render_width(),
-			TRUE
-		);
-
-		y_placement -= text_game_over->height;
-		y_placement -= 2.0f;
-
-		Mystr* str_score = mystr_create(game_state->arena_frame, "Final score: ");
-		Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
-		Mystr* score_str_concat = mystr_concat(game_state->arena_frame, str_score, score_number_str);
-		UI_Text* final_score_text = ui_text_create(
-			score_str_concat,
-			assets->font_candara,
-			0.0f,
-			y_placement,
-			0.1f,
-			graphics_window_render_width(),
-			TRUE
-		);
-
-		y_placement -= final_score_text->height;
-		y_placement -= 2.0f;
-
-		Mystr* str_try_again = mystr_create(game_state->arena_frame, "Press space to try again!");
-		UI_Text* text = ui_text_create(
-			str_try_again,
-			assets->font_candara,
-			0.0f,
-			y_placement,
-			0.1f,
-			graphics_window_render_width(),
-			TRUE
-		);
-
-		if (input_IsKeyJustPressed(GLFW_KEY_SPACE)) {
-			game_state->game_state_mode = GameStateMode_Playing;
-			game_state->enemy_wave_level = 1;
-			game_state->player_score = 0;
-			game_state->enemy_alive_count = 0;
-		}
+		game_ui_gameover(game_state, assets);
 	}
 
 	// #levels
 	{
-		if (game_state->enemy_alive_count == 0 && 
-			time_now_seconds() - game_state->enemy_wave_cleared_time >= game_state->enemy_wave_respawn_cooldown) {
-			switch (game_state->enemy_wave_level) {
-			case 1:
-				_game_enemy_wave_create(game_state, arena, assets, 3, 1, EnemyType_Basic);
-				break;
-			case 2:
-				_game_enemy_wave_create(game_state, arena, assets, 3, 2, EnemyType_Basic);
-				break;
-			case 3:
-				_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
-				break;
-			case 4:
-				_game_enemy_wave_create(game_state, arena, assets, 4, 3, EnemyType_Basic);
-				break;
-			case 5:
-				_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
-				break;
-			case 6:
-				_game_enemy_wave_create(game_state, arena, assets, 2, 2, EnemyType_Hopper);
-				break;
-			case 7:
-				_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
-				_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
-				break;
-			default:
-				_game_enemy_wave_create(game_state, arena, assets, 4, game_state->enemy_wave_level, EnemyType_Basic);
-				_game_enemy_wave_create(game_state, arena, assets, 2, game_state->enemy_wave_level / 2, EnemyType_Hopper);
-				break;
-			}
+		b8 spawn_new_wave = game_state->enemy_alive_count == 0 &&
+			time_now_seconds() - game_state->enemy_wave_cleared_time >= game_state->enemy_wave_respawn_cooldown;
+
+		if (spawn_new_wave) {
+			game_wave_spawn_next(game_state, arena, assets);
 		}
 	}
 
@@ -767,6 +516,109 @@ Entity* entity_allocate(GameState* game_state, MemoryArena* arena) {
 	return result;
 }
 
+// Entity.updates
+void game_entity_enemy_update(Entity* e, GameState* game_state, MemoryArena* arena, Assets* assets) {
+	b8 will_shoot = FALSE;
+	// shoot
+	if (time_now_seconds() >= e->shoot_last_fire + e->shoot_cooldown_min) {
+		will_shoot = e->shoot_change_to_shoot >= math_rand();
+		e->shoot_last_fire = time_now_seconds();
+	}
+
+	switch (e->enemy_type)
+	{
+	case EnemyType_Basic:
+		if (will_shoot) {
+			Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
+			bullet->transform.position.x += e->transform.scale.x / 2.0f;
+			bullet->motion.direction.y *= -1;
+			bullet->collision_layers = CollisionLayer_Player;
+			bullet->transform.rotation = 180.0f;
+			sound_play(&assets->sound_laser_shot);
+		}
+		// movement
+		{
+			e->transform.position.x += sinf(game_state->secondsSinceStart * e->sin_frequency) * e->sin_magnitude;
+		}
+		break;
+
+	case EnemyType_Hopper:
+		// pick new target if at target
+		if (time_now_seconds() >= e->move_last_switch + e->move_switch_cooldown) {
+			f32 min_move_distance = 50.0f;
+			f32 max_move_distance = 100.0f;
+			f32 min_y_value = 80.0f;
+
+			Vec2f new_target = math_vec2f_random_withinrange(e->transform.position, min_move_distance, max_move_distance);
+
+			new_target.x = math_clamp(0.0f, new_target.x, graphics_window_render_width() - e->transform.scale.x);
+			new_target.y = math_clamp(min_y_value, new_target.y, graphics_window_render_height() - e->transform.scale.y);
+
+			// Avoid hopper stuck in corners
+			if (new_target.x >= graphics_window_render_width() - e->transform.scale.x) {
+				new_target.x -= math_rand_range(min_move_distance, max_move_distance);
+			}
+			else if (new_target.x <= 0.0f) {
+				new_target.x += math_rand_range(min_move_distance, max_move_distance);
+			}
+
+			if (new_target.y >= graphics_window_render_height() - e->transform.scale.y) {
+				new_target.y -= math_rand_range(min_move_distance, max_move_distance);
+			}
+			else if (new_target.y <= min_y_value) {
+				new_target.y += math_rand_range(min_move_distance, max_move_distance);
+			}
+
+			e->target_position = new_target;
+			e->move_last_switch = time_now_seconds();
+		}
+
+		e->transform.position.x = math_lerp(e->transform.position.x, e->target_position.x, 0.1f);
+		e->transform.position.y = math_lerp(e->transform.position.y, e->target_position.y, 0.1f);
+
+		if (will_shoot) {
+			f32 bullet_x = e->transform.position.x;
+			for (u32 i = 0; i < 2; i++) {
+				Entity* bullet = _game_entity_player_bullet_create(game_state, arena, assets, e->transform.position);
+				bullet->transform.position.x = bullet_x;
+				bullet->motion.direction.y *= -1;
+				bullet->collision_layers = CollisionLayer_Player;
+				bullet->transform.rotation = 180.0f;
+				bullet_x += e->transform.scale.x;
+			}
+			sound_play(&assets->sound_laser_shot);
+		}
+		break;
+	}
+}
+
+void game_entity_tint_update(Entity* e) {
+	f32 tint_time_progression = 0.0f;
+
+	// Set tint strength if within duration
+	if (e->tint_active && tint_time_progression <= e->tint_duration) {
+		tint_time_progression = time_now_seconds() - e->tint_start;
+		f32 tint_progress = 0.0f;
+		if (e->tint_duration > 0.0f) {
+			tint_progress = math_minf(1.0f, tint_time_progression / e->tint_duration);
+		}
+
+		f32 tint_strength = 0.0f;
+		if (tint_progress <= 0.5f) {
+			tint_strength = math_ease_out_cubic(tint_progress * 2.0f);
+		}
+		else {
+			tint_strength = math_ease_out_cubic((1.0f - tint_progress) * 2.0f);
+		}
+
+		e->tint_strength = tint_strength;
+	}
+	else {
+		e->tint_active = FALSE;
+	}
+}
+
+
 // Entity #blueprints
 Entity* entity_enemy_basic_create(GameState* game_state, MemoryArena* arena, Assets* assets) {
 
@@ -835,4 +687,163 @@ Entity* entity_enemy_hopper_create(GameState* game_state, MemoryArena* arena, As
 	enemy->shoot_last_fire = 0.0f;
 
 	return enemy;
+}
+
+
+void game_wave_spawn_next(GameState* game_state, MemoryArena* arena, Assets* assets) {
+	switch (game_state->enemy_wave_level) {
+	case 1:
+		_game_enemy_wave_create(game_state, arena, assets, 3, 1, EnemyType_Basic);
+		break;
+	case 2:
+		_game_enemy_wave_create(game_state, arena, assets, 3, 2, EnemyType_Basic);
+		break;
+	case 3:
+		_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
+		break;
+	case 4:
+		_game_enemy_wave_create(game_state, arena, assets, 4, 3, EnemyType_Basic);
+		break;
+	case 5:
+		_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
+		break;
+	case 6:
+		_game_enemy_wave_create(game_state, arena, assets, 2, 2, EnemyType_Hopper);
+		break;
+	case 7:
+		_game_enemy_wave_create(game_state, arena, assets, 4, 2, EnemyType_Basic);
+		_game_enemy_wave_create(game_state, arena, assets, 1, 2, EnemyType_Hopper);
+		break;
+	default:
+		_game_enemy_wave_create(game_state, arena, assets, 4, game_state->enemy_wave_level, EnemyType_Basic);
+		_game_enemy_wave_create(game_state, arena, assets, 2, game_state->enemy_wave_level / 2, EnemyType_Hopper);
+		break;
+	}
+}
+
+// #ui
+void game_ui_playing(GameState* game_state, Assets* assets) {
+	f32 score_label_x = 10.0f;
+	Mystr* score = mystr_create(game_state->arena_frame, "score: ");
+	UI_Text* text = ui_text_create(
+		score,
+		assets->font_candara,
+		score_label_x,
+		graphics_window_render_height() - 10.0f,
+		0.1f,
+		graphics_window_render_width(),
+		FALSE
+	);
+	score_label_x += text->width;
+
+	Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
+	ui_text_create(
+		score_number_str,
+		assets->font_candara,
+		score_label_x,
+		graphics_window_render_height() - 10.0f,
+		0.1f,
+		graphics_window_render_width(),
+		FALSE
+	);
+
+	f32 level_label_x = graphics_window_render_width() - 40.0f;
+	Mystr* level_label = mystr_create(game_state->arena_frame, "level: ");
+	UI_Text* level_label_text = ui_text_create(
+		level_label,
+		assets->font_candara,
+		level_label_x,
+		graphics_window_render_height() - 10.0f,
+		0.1f,
+		graphics_window_render_width(),
+		FALSE
+	);
+	level_label_x += level_label_text->width;
+
+	Mystr* level_number = mystr_u32_to_mystr(game_state->arena_frame, game_state->enemy_wave_level);
+	ui_text_create(
+		level_number,
+		assets->font_candara,
+		level_label_x,
+		graphics_window_render_height() - 10.0f,
+		0.1f,
+		graphics_window_render_width(),
+		FALSE
+	);
+
+	f32 health_block_width = 15.0f;
+	f32 health_block_x = graphics_window_render_width() - health_block_width - 2.0f;
+	for (u32 i = 0; i < game_state->player->health; i++) {
+		ui_block(health_block_x, 5.0f, health_block_width, 6.0f, math_vec3f(0.2f, 1.0f, 0.2f));
+		health_block_x -= health_block_width + 2.0f;
+	}
+}
+
+void game_ui_mainmenu(GameState* game_state, Assets* assets) {
+	Mystr* str = mystr_create(game_state->arena_frame, "Press space to begin!");
+	UI_Text* text = ui_text_create(
+		str,
+		assets->font_candara,
+		0.0f,
+		120.0f,
+		0.3f,
+		graphics_window_render_width(),
+		TRUE
+	);
+
+	if (input_IsKeyPressed(GLFW_KEY_SPACE)) {
+		game_state->game_state_mode = GameStateMode_Playing;
+	}
+}
+
+void game_ui_gameover(GameState* game_state, Assets* assets) {
+	f32 y_placement = 120.0f;
+
+	Mystr* str = mystr_create(game_state->arena_frame, "Game over!");
+	UI_Text* text_game_over = ui_text_create(
+		str,
+		assets->font_candara,
+		0.0f,
+		y_placement,
+		0.3f,
+		graphics_window_render_width(),
+		TRUE
+	);
+
+	y_placement -= text_game_over->height;
+	y_placement -= 2.0f;
+
+	Mystr* str_score = mystr_create(game_state->arena_frame, "Final score: ");
+	Mystr* score_number_str = mystr_u32_to_mystr(game_state->arena_frame, game_state->player_score);
+	Mystr* score_str_concat = mystr_concat(game_state->arena_frame, str_score, score_number_str);
+	UI_Text* final_score_text = ui_text_create(
+		score_str_concat,
+		assets->font_candara,
+		0.0f,
+		y_placement,
+		0.1f,
+		graphics_window_render_width(),
+		TRUE
+	);
+
+	y_placement -= final_score_text->height;
+	y_placement -= 2.0f;
+
+	Mystr* str_try_again = mystr_create(game_state->arena_frame, "Press space to try again!");
+	UI_Text* text = ui_text_create(
+		str_try_again,
+		assets->font_candara,
+		0.0f,
+		y_placement,
+		0.1f,
+		graphics_window_render_width(),
+		TRUE
+	);
+
+	if (input_IsKeyJustPressed(GLFW_KEY_SPACE)) {
+		game_state->game_state_mode = GameStateMode_Playing;
+		game_state->enemy_wave_level = 1;
+		game_state->player_score = 0;
+		game_state->enemy_alive_count = 0;
+	}
 }

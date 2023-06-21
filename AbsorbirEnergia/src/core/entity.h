@@ -29,12 +29,11 @@ enum EntityFlags
 {
 	EntityFlag_HasTexture = 1 << 0,
 	EntityFlag_HasMotion = 1 << 1,
-	EntityFlag_EnemyBaseMover = 1 << 2,
-	EntityFlag_HasAnimations = 1 << 3,
-	EntityFlag_HasDestroyTimer = 1 << 4,
-	EntityFlag_HasCollider = 1 << 5,
-	EntityFlag_MarkedForDestruction = 1 << 6,
-	EntityFlag_HasTint = 1 << 7
+	EntityFlag_HasAnimations = 1 << 2,
+	EntityFlag_HasDestroyTimer = 1 << 3,
+	EntityFlag_HasCollider = 1 << 4,
+	EntityFlag_MarkedForDestruction = 1 << 5,
+	EntityFlag_HasTint = 1 << 6
 };
 
 enum EntityTags
